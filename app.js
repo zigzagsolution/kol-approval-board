@@ -12,9 +12,9 @@ const $=s=>document.querySelector(s);
 const APP_URL=(window.KOL_CONFIG&&window.KOL_CONFIG.APP_URL)||"";
 const TARGET=Number(window.KOL_CONFIG&&window.KOL_CONFIG.TARGET)||50;
 const PHASES=(window.KOL_CONFIG&&window.KOL_CONFIG.PHASES)||[
-  {n:"1",title:"Build Festival Desire",d:"6–13 พ.ย. 2569 · Awareness",goal:"Teaser \"SAVE THE DATE 20–29 พ.ย.\" · Reel #น่าลงทุน #น่าเที่ยว #น่าอยู่ · ต่อยอดงานบุกสยาม 8 พ.ย. · Caravan 3 เส้นทาง · ลานย่าโม / Korat Neighborhood",brief:"เป้า: ให้คนจำวันงานและจองวันไว้ — บอกวัน/สถานที่/3 ประสบการณ์ ชี้ไป LINE OA รับสิทธิ์ Early Bird",c:"#6f6f75"},
+  {n:"1",title:"Build Festival Desire",d:"6–13 พ.ย. 2569 · Awareness",goal:"Teaser \"SAVE THE DATE 20–29 พ.ย.\" · Reel #น่าลงทุน #น่าเที่ยว #น่าอยู่ · ต่อยอดงานบุกสยาม 8 พ.ย. · Caravan 3 เส้นทาง · ลานย่าโม / Korat Neighborhood",brief:"เป้า: ให้คนจำวันงานและจองวันไว้ — บอกวัน/สถานที่/3 ประสบการณ์ ชี้ไปเว็บอวดเมืองโคราช + LINE KORAT POINT รับสิทธิ์ Early Bird",c:"#6f6f75"},
   {n:"2",title:"Drive Attendance",d:"13–19 พ.ย. 2569 · Consideration",goal:"Vlog \"โคราชหนึ่งวัน\" เลือก 4 จุดจาก 4 Pillars (งานออกแบบ → Local Food → Street Art → Creative Space) จบด้วยแผนที่ตามรอย · Guide จุดจอดรถ/ร้านอาหาร · Line-up สายเต้น/เพลง/ช้อป/กิน · นับถอยหลัง",brief:"เป้า: ให้ตัดสินใจเดินทาง — เส้นทาง ที่พัก ที่จอดรถ แพ็กเกจ/คูปอง ชวนนัดเพื่อน ปิดท้าย \"จองวันเสาร์นี้\"",c:"#f05a85"},
-  {n:"3",title:"Festival Experience",d:"20–29 พ.ย. 2569 · Conversion",goal:"20–22 เปิดเมือง K-Street/K-Sounder · 23–26 จุดกิจกรรม 7 จุดช่วงเย็น · 27 เปิดงานทางการ · 27–29 K-BATx Expo / K-Battle รอบชิง / Jennifer Kim × Orchestra · เช็กอิน 7 จุดผ่าน LINE",brief:"เป้า: ให้คนที่ยังไม่มา มาสุดสัปดาห์นี้ — ไลฟ์/Highlight รายวัน รีวิว Street Food & Fashion จบด้วยพิกัดบูธ + QR แลกสิทธิ์หน้างาน",c:"#e8194c"}];
+  {n:"3",title:"Festival Experience",d:"20–29 พ.ย. 2569 · Conversion",goal:"20–22 เปิดเมือง K-Street/K-Sounder · 23–26 จุดกิจกรรม 7 จุดช่วงเย็น · 27 เปิดงานทางการ · 27–29 K-BATx Expo / K-Battle รอบชิง / Jennifer Kim × Orchestra · เช็กอิน 7 จุดผ่าน LINE KORAT POINT",brief:"เป้า: ให้คนที่ยังไม่มา มาสุดสัปดาห์นี้ — ไลฟ์/Highlight รายวัน รีวิว Street Food & Fashion จบด้วยพิกัดบูธ + QR แลกสิทธิ์หน้างาน",c:"#e8194c"}];
 const HASHTAGS="#อวดเมืองโคราช #อวดเมือง2569 #KBattle2026 #น่าลงทุน #น่าเที่ยว #น่าอยู่";
 const KOL_REACH_TARGET=5e6, KOL_VISIT_TARGET=50000; /* เด็ค: TikTok/IG Mega 3–5 + Micro 50+ → Reach ~5M × 1% = 50,000 คน (1 ใน 4 ของเป้า 200,000) */
 const TOR_MICRO_MIN=30, TOR_NANO_MIN=20; /* TOR 6.3.4(3): Micro 5,000+ ≥30 คน · Nano 1,000+ ≥20 คน รวม ≥50 */
@@ -127,7 +127,8 @@ function render(){
 }
 /* ===== tabs ===== */
 let TAB="review"; try{ TAB=localStorage.getItem("kol_tab")||"review"; }catch(e){}
-function setTab(t){ TAB=t; document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===t)); document.querySelectorAll(".page").forEach(p=>p.hidden=p.dataset.page!==t); try{localStorage.setItem("kol_tab",t);}catch(e){} try{ logEv("tab",t); }catch(e){} if(t==="sched"&&typeof renderSched==="function"&&data.length) renderSched(teamList([...data].sort((a,b)=>(b.f||0)-(a.f||0))).all); }
+function pmOK(){ try{ return !!sessionStorage.getItem("pm_who"); }catch(e){ return false; } }
+function setTab(t){ if(t==="pm"&&!pmOK()){ if(window.openPmGate){ openPmGate(); return; } t="review"; } TAB=t; document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===t)); document.querySelectorAll(".page").forEach(p=>p.hidden=p.dataset.page!==t); try{localStorage.setItem("kol_tab",t);}catch(e){} try{ logEv("tab",t); }catch(e){} if(t==="pm"&&window.renderPM) renderPM(); if(t==="sched"&&typeof renderSched==="function"&&data.length) renderSched(teamList([...data].sort((a,b)=>(b.f||0)-(a.f||0))).all); }
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.tab)); setTab(TAB);
 $("#present").onclick=()=>{ const on=document.body.classList.toggle("present"); $("#present").textContent=on?"✕ ออกจากนำเสนอ":"▶ นำเสนอ"; if(on&&document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{}); if(!on&&document.fullscreenElement) document.exitFullscreen().catch(()=>{}); logEv("present",on?"on":"off"); };
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&document.body.classList.contains("present")) $("#present").click(); });
@@ -211,6 +212,7 @@ const TL_W={6:2,7:2,8:4,9:3,10:3,11:3,12:4,13:4,14:4,15:5,16:5,17:5,18:5,19:5,20
 const TL_EV=[{d:8,t:"บุกสยาม",s:"Kick-off กทม. KOL 5–8 คน"},{d:13,t:"เริ่ม TVC + เทงบสื่อ",s:"ช่วงเร่งคนตัดสินใจ 13–19"},{d:19,t:"Press Tour",s:"สื่อไลฟ์สไตล์ 19–20"},{d:20,t:"เปิดเมือง",s:"K-Street / K-Sounder 20–22"},{d:23,t:"7 จุดในเมือง",s:"ช่วงเย็น 23–26"},{d:27,t:"เปิดงานทางการ",s:"K-BATx · รอบชิง · Jennifer Kim 27–29"}];
 const tlPhase=d=>d<13?1:d<20?2:3;
 /* Nano Week (รายละเอียดใต้ autoDates) */
+const NW_GAP=3; // โพสต์ 2 ครั้งต้องห่างกันอย่างน้อย 3 วัน
 const NW={from:13,to:19,n:15,c:"#7b4bd6",title:"Nano Week",d:"13–19 พ.ย. 2569 · 7 วันก่อนงาน"};
 function renderTimeline(){ const el=$("#timeline"); if(!el||el.dataset.done) return; el.dataset.done=1; const today=new Date(); const td=(today.getMonth()===10&&today.getFullYear()===2026)?today.getDate():0;
   const cells=[]; const spans=[[1,6,12,"ระยะ 1 · 6–12"],[2,13,19,"ระยะ 2 · 13–19"],[3,20,29,"ระยะ 3 · 20–29"]];
@@ -272,8 +274,8 @@ function renderSched(all){ const el=$("#sc"); if(!el||$("#tabs .tab.active").dat
         h+=`<div class="cell nwc${dow===0||dow===6?" we":""}${inW?(has?"":" rec"):" off"}" data-k="${esc(d.key)}" data-d="${x}" data-n="1" style="--ph:${c}">${has?`<div class="post nw" draggable="true" data-k="${esc(d.key)}" data-d="${x}" data-n="1" title="${esc(d.name)} · ${x} พ.ย. · Nano Week — กดเพื่อดู/แก้แนวคอนเทนต์" style="--ph:${c}">${src?`<img src="${src}" alt="">`:""}<span class="st st-${nPostOf(d,x).status}"></span></div>`:sug?`<div class="post sug nw" data-sug="1" title="MIDI แนะนำ ${x} พ.ย. — กดเพื่อยืนยัน" style="--ph:${c}">${src?`<img src="${src}" alt="">`:""}</div>`:first?`<span class="p1" title="โพสต์แรก ${x} พ.ย.">1</span>`:""}</div>`; }); });
     for(let i=0;i<NWP.short;i++){ h+=`<div class="who nw empty"><div class="av av-txt">+</div><div style="min-width:0"><div class="nm">รอเติม Nano</div><div class="f">ต่ำกว่า 10K</div></div></div>`+TL_DAYS.map(x=>`<div class="cell nwc${x>=NW.from&&x<=NW.to?"":" off"}"></div>`).join(""); } }
   el.innerHTML=h;
-  const multi=all.filter(d=>datesOf(d).length>1).length, withDates=all.filter(d=>datesOf(d).length).length, posts=Object.values(tot).reduce((s,t)=>s+t.n,0), nposts=NWP.pick.filter(d=>nanoDatesOf(d).length).length;
-  $("#sc-sum").textContent=(multi?`⚠ มี ${multi} คนลงเกิน 1 โพสต์ (กติกา: 1 คน 1 โพสต์ ยกเว้น Nano Week) — กดรูปแล้ว "เอาออกจากวันนี้" · `:"")+`กำหนดวันแล้ว ${withDates}/${all.length} คน · รวม ${posts} โพสต์ (Nano Week ${nposts}/${NWP.pick.length}) · รูปจาง ๆ เส้นประ = วันที่ MIDI แนะนำ (กดเพื่อยืนยัน หรือลากไปวันอื่น) · ขีดสีใต้ช่อง = วันในระยะของคนนั้น`;
+  const multi=all.filter(d=>datesOf(d).length>1).length, close=NWP.pick.filter(d=>nanoDatesOf(d).some(n=>datesOf(d).some(o=>Math.abs(o-n)<NW_GAP))).length, withDates=all.filter(d=>datesOf(d).length).length, posts=Object.values(tot).reduce((s,t)=>s+t.n,0), nposts=NWP.pick.filter(d=>nanoDatesOf(d).length).length;
+  $("#sc-sum").textContent=(multi?`⚠ มี ${multi} คนลงเกิน 1 โพสต์ (กติกา: 1 คน 1 โพสต์ ยกเว้น Nano Week) — กด "ใช้วันที่ MIDI วางไว้" ให้จัดเหลือคนละวัน หรือกดรูปแล้ว "เอาออกจากวันนี้" · `:"")+(close?`⚠ Nano ${close} คน โพสต์ 2 ครั้งห่างกันไม่ถึง ${NW_GAP} วัน · `:"")+`กำหนดวันแล้ว ${withDates}/${all.length} คน · รวม ${posts} โพสต์ (Nano Week ${nposts}/${NWP.pick.length}) · รูปจาง ๆ เส้นประ = วันที่ MIDI แนะนำ (กดเพื่อยืนยัน หรือลากไปวันอื่น) · ขีดสีใต้ช่อง = วันในระยะของคนนั้น`;
   // drag & drop
   let drag=null;
   el.querySelectorAll(".who[data-k],.post[data-k]").forEach(n=>{ n.addEventListener("dragstart",e=>{ drag={k:n.dataset.k,from:n.dataset.d?+n.dataset.d:null,n:!!n.dataset.n}; e.dataTransfer.effectAllowed="move"; try{ e.dataTransfer.setData("text/plain",n.dataset.k); }catch(_){} n.classList.add("ghost"); }); n.addEventListener("dragend",()=>n.classList.remove("ghost")); });
@@ -286,7 +288,7 @@ function renderSched(all){ const el=$("#sc"); if(!el||$("#tabs .tab.active").dat
 }
 /* ===== แนวคอนเทนต์ที่ MIDI ร่างให้ต่อโพสต์ ===== */
 function briefFor(d,day){ const p=tlPhase(day), txt=d.name+" "+d.cat, f=d.f||0; const local=LOCAL_RE.test(txt), travel=/ท่องเที่ยว|เที่ยว|travel|ทริป/i.test(d.cat||d.group), food=/กิน|อาหาร|อร่อย|food|ร้าน/i.test(d.cat), cafe=/คาเฟ่|cafe/i.test(d.cat), hotel=/ที่พัก|โรงแรม|hotel/i.test(d.cat), comm=/คอมมูนิตี้|community/i.test(d.cat), street=/แฟชั่น|fashion|สตรีท|street|เต้น|dance|ศิลปะ|art/i.test(txt);
-  const cta="ปิดท้าย: วัน 20–29 พ.ย. + ชี้ไป LINE OA อวดเมือง City Expo รับสิทธิ์ (Early Bird / Korat City Reward) + ลิงก์/QR ของตัวเอง";
+  const cta="ปิดท้าย: วัน 20–29 พ.ย. + ชี้ไป เว็บอวดเมืองโคราช + LINE KORAT POINT รับสิทธิ์ (Early Bird / Korat City Reward) + ลิงก์/QR ของตัวเอง";
   let fmt=p===1?FORMATS[0]:p===2?FORMATS[1]:FORMATS[2], b="";
   if(p===1){ if(d.artist) b=day===8?`คลิป 30–60 วิ จากงานบุกสยาม (ลาน Block i) "เจอกันโคราช 20–29 พ.ย." เล่า 3 ประสบการณ์ K-STREET / K-SOUNDER / K-EXPO ชวนแฟนคลับจองวัน`:`คลิป 30–60 วิ "SAVE THE DATE 20–29 พ.ย. มาเจอกันที่โคราช" พูด Key message ของแบรนด์ + ชวนแฟนคลับมาเจอ (ไอเดียศิลปินคิดเอง ตาม SOW)`;
     else if(local) b=`"ของดีโคราชที่คนต่างจังหวัดยังไม่รู้" 1 อย่าง + บอกว่าปลายเดือนนี้มีเทศกาล 20–29 พ.ย. ชวนเพื่อนต่างจังหวัดจองวันมา`;
@@ -303,6 +305,8 @@ function briefFor(d,day){ const p=tlPhase(day), txt=d.name+" "+d.cat, f=d.f||0; 
     else if(day<=26) b=local||food?`เช็กอิน 1 ใน 7 จุดในเมืองช่วงเย็น + รีวิวร้าน/บูธ Street Food "กินของใหม่ ใส่ของเท่" ให้เจ้าของเล่า 1 ประโยค จบด้วยพิกัดจริง + "สุดสัปดาห์ 27–29 งานใหญ่"`:`Highlight รายวันจาก 7 จุดในเมือง + ชวนมาวันเปิดงานทางการ 27 พ.ย. (K-BATx · รอบชิง · Jennifer Kim)`;
     else b=d.artist||f>=3e5?`ไลฟ์/คลิปวันเปิดงานทางการ 27 พ.ย. — K-BATx Expo · K-Battle รอบชิง · Jennifer Kim × Orchestra ชวนคนที่ยังไม่มา "มาวันสุดท้ายยังทัน"`:`Highlight สุดสัปดาห์ปิดงาน + รีวิวบูธ/ร้านที่ชอบ + QR แลกสิทธิ์หน้างาน ชวนคนใกล้โคราชมา 28–29`;
     if(day>=27&&!d.artist&&f<3e5) fmt=FORMATS[0]; }
+  const prev=day>=20?[...datesOf(d),...nanoDatesOf(d)].filter(x=>x<day).sort((a,b)=>b-a)[0]:0;
+  if(prev) b=`ต่อเรื่องจากคลิปที่แล้ว (${prev} พ.ย.): เปิดด้วยภาพ/ประโยคจากคลิปก่อน "จากคลิปที่แล้วที่ชวนไว้ วันนี้มางานจริงแล้ว" แล้วพาดูของจริงในงาน ใช้โทนเดียวกับคลิปก่อนตลอดคลิป\n`+b;
   return {format:fmt,brief:b+"\n"+cta+"\n"+HASHTAGS}; }
 const postKey=(d,day)=>rid(d)+"_"+day;
 const postOf=(d,day)=>{ const p=POSTS[postKey(d,day)]; if(p&&(p.brief||p.format)) return Object.assign({sug:false},p); const b=briefFor(d,day); return {format:b.format,brief:b.brief,status:"plan",link:"",sug:true}; };
@@ -329,6 +333,8 @@ function setDates(d,ds){ if(!reviewer){ askName(()=>setDates(d,ds)); return; } d
 /* MIDI วางวันให้: ใส่วันตามระยะ + ช่วงที่แนะนำ กระจายไม่ให้วันเดียวแน่น */
 function autoDates(all){ const load={}; all.forEach(d=>datesOf(d).forEach(x=>load[x]=(load[x]||0)+1)); const out=[]; const AIP=aiPlan(all).pick;
   const pickDay=(days)=>{ let best=days[0], bl=Infinity; days.forEach(x=>{ const l=(load[x]||0)-(TL_W[x]||1)*0.5; if(l<bl){ bl=l; best=x; } }); load[best]=(load[best]||0)+1; return best; };
+  // คนที่มีเกิน 1 วัน (ข้อมูลเก่า) → เหลือวันเดียว: วันที่อยู่ในระยะของคนนั้นก่อน ไม่งั้นวันแรก
+  all.filter(d=>datesOf(d).length>1).forEach(d=>{ const ds=datesOf(d), p0=+(phasesOf(d)[0]||0); const keep=ds.find(x=>tlPhase(x)===p0)||ds[0]; out.push({key:rid(d),name:d.name,dates:rawDates([keep],nanoDatesOf(d)),by:reviewer}); });
   all.filter(d=>!datesOf(d).length).sort((a,b)=>(b.f||0)-(a.f||0)).forEach(d=>{ let ph=phasesOf(d); if(!ph.length&&AIP[d.key]) ph=AIP[d.key].ph; const ds=[]; const txt=d.name+" "+d.cat; const f=d.f||0;
     const p0=ph[0]||"";
     if(p0==="1") ds.push(d.artist||f>=1e6?8:pickDay([6,7,9,10,11,12]));
@@ -351,7 +357,7 @@ const NW_ANGLES=[
   {k:"sneak",t:"แอบส่องก่อนงาน",fmt:FORMATS[4],b:day=>`ไปส่องพื้นที่จริงก่อนงาน เห็นเวที/ป้าย/บูธกำลังตั้ง "อีก ${Math.max(1,20-day)} วันเปิดเมือง" เล่าแบบเรียลไทม์`},
   {k:"qa",t:"ตอบคำถามที่คนถามบ่อย",fmt:FORMATS[0],b:()=>`ตอบ 5 คำถามจากคอมเมนต์จริง: งานกี่โมง · เข้าฟรีไหม · ไปยังไง · พาเด็ก/ผู้สูงอายุได้ไหม · ฝนตกทำไง`},
   {k:"budget",t:"เที่ยวงานงบ 500",fmt:FORMATS[3],b:()=>`แผน 1 วันในงาน งบ 500 บาท: กินอะไร ซื้ออะไร เช็กอินจุดไหน — สรุปเป็นแคโรเซลให้คนกดเซฟ`},
-  {k:"reward",t:"สอนรับสิทธิ์ LINE",fmt:FORMATS[0],b:()=>`สอนสมัคร LINE OA อวดเมือง City Expo ใน 30 วิ + เช็กอิน 7 จุดสะสมรับ Korat City Reward "สมัครไว้ก่อนวันงาน"`}];
+  {k:"reward",t:"สอนรับสิทธิ์ KORAT POINT",fmt:FORMATS[0],b:()=>`สอนสมัคร LINE KORAT POINT ใน 30 วิ (หรือลงทะเบียนผ่านเว็บอวดเมืองโคราช) + เช็กอิน 7 จุดสะสมแต้มรับ Korat City Reward "สมัครไว้ก่อนวันงาน"`}];
 /* แนวที่ใกล้กับโพสต์แรกของคนนั้น → ห้ามใช้ซ้ำ (อิงร่างใน briefFor) */
 function nwAvoid(d){ const s=new Set(), txt=d.name+" "+d.cat; const local=LOCAL_RE.test(txt), travel=/ท่องเที่ยว|เที่ยว|travel|ทริป/i.test(d.cat||d.group), food=/กิน|อาหาร|อร่อย|food|ร้าน/i.test(d.cat), cafe=/คาเฟ่|cafe/i.test(d.cat), hotel=/ที่พัก|โรงแรม|hotel/i.test(d.cat), comm=/คอมมูนิตี้|community/i.test(d.cat), street=/แฟชั่น|fashion|สตรีท|street|เต้น|dance|ศิลปะ|art/i.test(txt);
   datesOf(d).forEach(day=>{ const p=tlPhase(day);
@@ -362,17 +368,20 @@ function nwAvoid(d){ const s=new Set(), txt=d.name+" "+d.cat; const local=LOCAL_
 function nwFit(d,k){ const t=d.name+" "+d.cat; const m={eat:/กิน|อาหาร|อร่อย|food|ร้าน|restaurant/i,budget:/เที่ยว|travel|ช๊อป|ช้อป/i,friends:/เที่ยว|travel|คาเฟ่|cafe/i,outfit:/lifestyle|beauty|แฟชั่น|fashion/i,shortcut:/โคราช|korat|เมืองย่า/i,sneak:/โคราช|korat|เมืองย่า/i,qa:/รีวิว|review/i,reward:/lifestyle|รีวิว/i}; return m[k]&&m[k].test(t)?2:0; }
 function nanoPlan(all){ const elig=all.filter(d=>d.tier==="nano"&&!d.artist);
   const pr=d=>(nanoDatesOf(d).length?4:0)+(torTier(d)==="nano"?2:0)+(LOCAL_RE.test(d.name+" "+d.cat)?1:0);
-  const pick=[...elig].sort((a,b)=>pr(b)-pr(a)||(b.f||0)-(a.f||0)).slice(0,NW.n).sort((a,b)=>(b.f||0)-(a.f||0));
+  const nano=[...elig].sort((a,b)=>pr(b)-pr(a)||(b.f||0)-(a.f||0)).slice(0,NW.n);
+  // Nano ไม่พอ 15 → เติมด้วย Micro ที่ผู้ติดตามน้อยที่สุด (คนที่มีวัน Nano Week อยู่แล้วมาก่อน)
+  const fill=all.filter(d=>d.tier==="micro"&&!d.artist).sort((a,b)=>(nanoDatesOf(b).length?1:0)-(nanoDatesOf(a).length?1:0)||(a.f||0)-(b.f||0)).slice(0,Math.max(0,NW.n-nano.length));
+  const pick=[...nano,...fill].sort((a,b)=>(b.f||0)-(a.f||0));
   const use={}, angle={}, cap=Math.ceil(NW.n/NW_ANGLES.length);
   pick.forEach(d=>{ const av=nwAvoid(d); const ok=NW_ANGLES.filter(a=>!av.has(a.k)); const pool=(ok.filter(a=>(use[a.k]||0)<cap).length?ok.filter(a=>(use[a.k]||0)<cap):ok.length?ok:NW_ANGLES);
     const a=[...pool].sort((x,y)=>(use[x.k]||0)-(use[y.k]||0)||nwFit(d,y.k)-nwFit(d,x.k))[0]; use[a.k]=(use[a.k]||0)+1; angle[d.key]=a; });
   const load={}; all.forEach(d=>{ datesOf(d).forEach(x=>load[x]=(load[x]||0)+1); nanoDatesOf(d).forEach(x=>load[x]=(load[x]||0)+1); });
-  const sug={}; pick.filter(d=>!nanoDatesOf(d).length).forEach(d=>{ const own=datesOf(d); let best=null, bl=Infinity; NW_DAYS.filter(x=>!own.includes(x)).forEach(x=>{ const l=(load[x]||0)-NW_W[x]*1.2; if(l<bl){ bl=l; best=x; } }); if(best){ sug[d.key]=best; load[best]=(load[best]||0)+1; } });
-  return {pick,angle,sug,short:Math.max(0,NW.n-pick.length),elig:elig.length,reach:pick.reduce((s,d)=>s+(d.f||0),0)}; }
-let NWP={pick:[],angle:{},sug:{},short:NW.n,elig:0,reach:0};
+  const sug={}; pick.filter(d=>!nanoDatesOf(d).length).forEach(d=>{ const own=datesOf(d); let best=null, bl=Infinity; (NW_DAYS.filter(x=>own.every(o=>Math.abs(o-x)>=NW_GAP)).length?NW_DAYS.filter(x=>own.every(o=>Math.abs(o-x)>=NW_GAP)):NW_DAYS.filter(x=>!own.includes(x))).forEach(x=>{ const l=(load[x]||0)-NW_W[x]*1.2; if(l<bl){ bl=l; best=x; } }); if(best){ sug[d.key]=best; load[best]=(load[best]||0)+1; } });
+  return {pick,angle,sug,fill:fill.map(d=>d.key),short:Math.max(0,NW.n-pick.length),elig:elig.length,reach:pick.reduce((s,d)=>s+(d.f||0),0)}; }
+let NWP={pick:[],angle:{},sug:{},fill:[],short:NW.n,elig:0,reach:0};
 function nanoBriefFor(d,day){ const a=NWP.angle[d.key]||NW_ANGLES[0]; const first=datesOf(d);
   const was=first.length?`ต่างจากโพสต์แรก (${first.map(x=>x+" พ.ย.").join(", ")}: ${first.map(x=>postOf(d,x).brief.split("\n")[0].slice(0,48)).join(" / ")}…)`:"โพสต์แรกยังไม่ได้กำหนดวัน — วางในตารางด้านบนด้วย";
-  return {format:a.fmt,brief:`[Nano Week · ${a.t}] ${a.b(day)}\nปิดท้าย: เปิดงาน 20 พ.ย. อีก ${Math.max(1,20-day)} วัน + ชี้ไป LINE OA อวดเมือง City Expo รับสิทธิ์ + ลิงก์/QR ของตัวเอง\n${HASHTAGS}\n— ${was}`}; }
+  return {format:a.fmt,brief:`[Nano Week · ${a.t}] ${a.b(day)}\nปิดท้าย: เปิดงาน 20 พ.ย. อีก ${Math.max(1,20-day)} วัน + ชี้ไป เว็บอวดเมืองโคราช + LINE KORAT POINT รับสิทธิ์ + ลิงก์/QR ของตัวเอง\n${HASHTAGS}\n— ${was}`}; }
 const nPostKey=(d,day)=>rid(d)+"_n"+day;
 const nPostOf=(d,day)=>{ const p=POSTS[nPostKey(d,day)]; if(p&&(p.brief||p.format)) return Object.assign({sug:false},p); const b=nanoBriefFor(d,day); return {format:b.format,brief:b.brief,status:"plan",link:"",sug:true}; };
 function setNanoDates(d,nds){ if(!reviewer){ askName(()=>setNanoDates(d,nds)); return; } nds=[...new Set(nds)].filter(x=>x>=NW.from&&x<=NW.to); const id=rid(d); const prev=reviews[id]; const s=rawDates(datesOf(d),nds); reviews[id]=Object.assign({},prev,{dates:s}); render(); logEv("nano-dates",d.name+" → "+(nds.join(",")||"-"));
@@ -381,7 +390,7 @@ function renderNanoWeek(all){ const el=$("#nwk"); if(!el) return; const P=NWP;
   const posts=P.pick.filter(d=>nanoDatesOf(d).length).length;
   const cnt={}; P.pick.forEach(d=>{ const a=P.angle[d.key]; if(a) cnt[a.k]=(cnt[a.k]||0)+1; });
   const cards=P.pick.map(d=>{ const a=P.angle[d.key]; const nd=nanoDatesOf(d); const day=nd[0]||P.sug[d.key]; const first=datesOf(d); const src=avSrc(d);
-    return `<div class="nw-c" data-k="${esc(d.key)}">${src?`<img src="${src}" alt="">`:`<span class="f">${iniOf(d)}</span>`}<div><b>${esc(d.name)} <span class="sub">${fmtN(d.f)}</span></b><span class="p1">โพสต์ 1: ${first.length?first.map(x=>`${x} พ.ย. · ระยะ ${tlPhase(x)}`).join(", "):"ยังไม่กำหนดวัน"}</span><span class="p2">โพสต์ 2: ${day?`${day} พ.ย.`:"—"}${nd.length?"":" <i>(แนะนำ)</i>"} · ${esc(a?a.t:"")}</span></div></div>`; }).join("")+Array.from({length:P.short},()=>`<div class="nw-c empty"><span class="f">+</span><div><b>รอเติม Nano</b><span class="p1">ผู้ติดตามต่ำกว่า 10K</span></div></div>`).join("");
+    return `<div class="nw-c" data-k="${esc(d.key)}">${src?`<img src="${src}" alt="">`:`<span class="f">${iniOf(d)}</span>`}<div><b>${esc(d.name)} <span class="sub">${fmtN(d.f)}</span>${P.fill&&P.fill.includes(d.key)?' <span class="nw-mi">Micro เติม</span>':''}</b><span class="p1">โพสต์ 1: ${first.length?first.map(x=>`${x} พ.ย. · ระยะ ${tlPhase(x)}`).join(", "):"ยังไม่กำหนดวัน"}</span><span class="p2">โพสต์ 2: ${day?`${day} พ.ย.`:"—"}${nd.length?"":" <i>(แนะนำ)</i>"} · ${esc(a?a.t:"")}</span></div></div>`; }).join("")+Array.from({length:P.short},()=>`<div class="nw-c empty"><span class="f">+</span><div><b>รอเติม Nano</b><span class="p1">ผู้ติดตามต่ำกว่า 10K</span></div></div>`).join("");
   el.innerHTML=`<div class="nw-top"><div><div class="num">ช่วงพิเศษ · ซ้อนในระยะที่ 2</div><h3>${NW.title} — Nano ${NW.n} คน โพสต์ครั้งที่ 2</h3><div class="d">${NW.d} · ทุกคนได้ 2 งาน: โพสต์แรกตามแผน 3 ระยะ + โพสต์ที่ 2 ในช่วงนี้ แนวคอนเทนต์ใหม่ ไม่ซ้ำโพสต์แรก และไม่ซ้ำกันเองเกิน ${Math.ceil(NW.n/NW_ANGLES.length)} คนต่อแนว</div></div>
     <div class="kpi"><div><b>${P.pick.length}<small>/${NW.n}</small></b>Nano</div><div><b>${posts}<small>/${P.pick.length}</small></b>วางวันแล้ว</div><div><b>+${P.pick.length}</b>โพสต์เพิ่ม</div><div><b>${fmtN(P.reach)}</b>reach เพิ่ม</div></div></div>
     ${P.short?`<div class="nw-warn">⚠ ตอนนี้มี Nano (ต่ำกว่า 10K) ในทีม ${P.elig} คน — ขาดอีก ${P.short} คนให้ครบ ${NW.n} · เพิ่มได้ที่ "+ เพิ่ม KOL ใหม่"</div>`:""}
@@ -395,7 +404,9 @@ $("#sc-undo").onclick=()=>{ $("#umodal").hidden=false; $("#ulist").textContent="
     $("#ulist").querySelectorAll("button").forEach(b=>b.onclick=()=>{ if(!reviewer){ askName(()=>b.click()); return; } $("#umodal").hidden=true; prog.manual=true; progStart(); api("restoreSnapshot",[{id:b.dataset.id,by:reviewer}]).then(()=>{ toast("กู้คืนแล้ว"); load(); }).catch(err=>{ progDone(); toast("กู้คืนไม่สำเร็จ: "+(err&&err.message||err)); }); }); }).catch(err=>{ $("#ulist").textContent="โหลดไม่สำเร็จ: "+(err&&err.message||err); }); };
 $("#u-cancel").onclick=()=>{ $("#umodal").hidden=true; }; $("#umodal").addEventListener("click",e=>{ if(e.target.id==="umodal") $("#umodal").hidden=true; });
 $("#sc-auto").onclick=async()=>{ if(!reviewer){ askName(()=>$("#sc-auto").onclick()); return; } const all=teamList([...data].sort((a,b)=>(b.f||0)-(a.f||0))).all; const list=autoDates(all);
-  const tmp={}; list.forEach(r=>{ tmp[r.key]=reviews[r.key]; reviews[r.key]=Object.assign({},reviews[r.key],{dates:r.dates}); }); const NP=nanoPlan(all); Object.assign(reviews,tmp); // วางวันหลักก่อน แล้วค่อยหาวัน Nano ไม่ให้ชนวันโพสต์แรก
+  const tmp={}; list.forEach(r=>{ tmp[r.key]=reviews[r.key]; reviews[r.key]=Object.assign({},reviews[r.key],{dates:r.dates}); });
+  all.forEach(d=>{ const m=datesOf(d), n=nanoDatesOf(d); if(!n.length||!n.some(x=>m.some(o=>Math.abs(o-x)<NW_GAP))) return; const id=rid(d); if(!(id in tmp)) tmp[id]=reviews[id]; reviews[id]=Object.assign({},reviews[id],{dates:rawDates(m,[])}); if(!list.find(x=>x.key===id)) list.push({key:id,name:d.name,dates:rawDates(m,[]),by:reviewer}); else list.find(x=>x.key===id).dates=rawDates(m,[]); }); // Nano ที่ 2 โพสต์ติดกัน → ให้หาวันใหม่
+  const NP=nanoPlan(all); Object.assign(reviews,tmp); // วางวันหลักก่อน แล้วค่อยหาวัน Nano ไม่ให้ชนวันโพสต์แรก
   Object.keys(NP.sug).forEach(k=>{ const d=all.find(x=>x.key===k); if(!d) return; const id=rid(d); const r=list.find(x=>x.key===id); if(r){ const m=r.dates.split(",").filter(x=>/^\d+$/.test(x)).map(Number); r.dates=rawDates(m,[NP.sug[k]]); } else list.push({key:id,name:d.name,dates:rawDates(datesOf(d),[NP.sug[k]]),by:reviewer}); });
   if(!list.length){ toast("ทุกคนมีวันแล้ว"); return; } await snapshot("ก่อนใช้วันที่ MIDI วางไว้"); const prev={}; list.forEach(r=>{ prev[r.key]=reviews[r.key]; reviews[r.key]=Object.assign({},reviews[r.key],{dates:r.dates}); }); render(); logEv("auto-dates",list.length);
   api("setDatesMany",[list]).then(()=>toast(`วางวันให้ ${list.length} คนแล้ว — ลากขยับได้เลย`)).catch(err=>{ Object.assign(reviews,prev); render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); };
@@ -485,4 +496,5 @@ function load(){ progStart(); setStatus("warn","กำลังโหลดข�
 $("#refresh").onclick=()=>{ prog.manual=true; load(); }; showName(); skeleton(8);
 load(); setInterval(()=>{ if(!document.hidden) load(); },30000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden) load(); });
+window.KOL={$,esc,setTab,logEv,flushLog,reviewer:()=>reviewer,tab:()=>TAB}; // ให้ planmedia.js ใช้
 })();
