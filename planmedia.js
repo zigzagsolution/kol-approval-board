@@ -114,23 +114,56 @@ function defCh(it){ if(it.ch) return it.ch; const l=it.row.lab, g=it.row.g; if(g
 /* ===== ที่เก็บ: ชีตแท็บ Posts · "pm:<id>" = วันที่ · "pmc:<id>:<n>" = เนื้อหาที่แก้ (JSON แบ่งชิ้นละ ≤1500 ตัวอักษร เพราะช่องแนวคอนเทนต์เก็บได้ 2000) ===== */
 const P=()=>K.posts()||{};
 function who(){ try{ return sessionStorage.getItem("pm_who")||""; }catch(e){ return ""; } }
-function ov(id){ const p=P()["pm:"+id]; if(!p||!p.brief) return null; try{ const o=JSON.parse(p.brief); return o&&o.s?Object.assign(o,{by:p.by}):null; }catch(e){ return null; } }
+function ovRaw(id){ const p=P()["pm:"+id]; if(!p||!p.brief) return null; try{ return Object.assign(JSON.parse(p.brief)||{},{by:p.by}); }catch(e){ return null; } }
+function ov(id){ const o=ovRaw(id); return o&&o.s?o:null; }
+const ago=t=>{ if(!t) return ""; const d=new Date(t); return `${d.getDate()} ${MON[d.getMonth()+1]} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; };
+// บันทึกการแก้ไขของแต่ละรายการ: เนื้อหา (lg ใน pmc) + วันที่ (pm:) + ติ๊ก (pmx:) — เรียงใหม่สุดก่อน
+function logOf(it){ const L=[]; const c=readC(it.id); if(c&&c.lg) c.lg.forEach(x=>L.push(x));
+  const o=ovRaw(it.alias||it.id); if(o&&o.at) L.push({f:o.s?`วันที่ → ${fmtRange(o.s,o.e||o.s)}`:"คืนวันที่ตามเด็ค",by:o.by,at:o.at});
+  const p=P()["pmx:"+it.id]; if(p&&p.brief){ try{ const x=JSON.parse(p.brief); if(x.at) L.push({f:x.m||"ติ๊กลงแล้ว",by:p.by,at:x.at}); }catch(e){} }
+  return L.filter(x=>x.at).sort((a,b)=>b.at-a.at); }
+const logLine=x=>`<span class="f">${esc(x.f)}</span> · ${esc(x.by||"—")} · ${ago(x.at)}`;
 function readC(id){ let str="", n=0, by=""; for(;n<30;n++){ const p=P()["pmc:"+id+":"+n]; if(!p||!p.brief) break; str+=p.brief; by=p.by||by; } if(!str) return null; try{ return Object.assign(JSON.parse(str),{_by:by}); }catch(e){ return null; } }
 function dates(it){ if(it.alias&&ITEMS[it.alias]) return dates(ITEMS[it.alias]); const o=ov(it.id); return o?{s:o.s,e:o.e||o.s,by:o.by,ch:true}:{s:it.s,e:it.e||it.s,ch:false}; }
 function eff(it){ const c=readC(it.id)||{}; return {t:c.t||it.t, sum:c.sum!=null?c.sum:(it.sum||""), ch:c.ch||defCh(it), st:c.st||"plan", own:c.own||"", det:c.det||it.det||[], note:c.note||"", edited:!!c.t||!!c.det||!!c.sum||!!c.ch||!!c.st||!!c.own||!!c.note, by:c._by||""}; }
+// ติ๊ก "ลงแล้ว": "pmx:<id>" = {a:1} (ทั้งรายการ) หรือ {u:["12","13",…]} (รายชิ้นของคลิปสั้น)
+const track=it=>it.row.g!==PH&&!it.row.lock;
+function units(it,E){ if(!it.list) return null; const u=[]; (E||eff(it)).det.forEach((x,i)=>{ const m=String(x[0]).match(/^#(\d+)(?:\s*[–-]\s*(\d+))?/); if(m){ for(let n=+m[1];n<=(m[2]?+m[2]:+m[1]);n++) u.push(String(n)); } else u.push("i"+i); }); return u; }
+function doneOf(id){ const p=P()["pmx:"+id]; let o={}; if(p&&p.brief){ try{ o=JSON.parse(p.brief)||{}; }catch(e){} } return {a:!!o.a,u:new Set(o.u||[]),by:p&&p.brief?p.by:""}; }
+const STP={plan:0,prod:40,review:75,live:100};
+function prog(it,E){ if(!track(it)) return null; E=E||eff(it); const D=doneOf(it.id), U=units(it,E); let g;
+  if(!U){ const n=D.a||E.st==="live"?1:0; g={n,t:1,D,pct:n?100:STP[E.st]||0}; } else { const n=U.filter(x=>D.u.has(x)).length; g={n,t:U.length,D,U,pct:Math.round(n/U.length*100)}; }
+  // เทียบกับเวลาที่ผ่านไปในช่วงของรายการ → ตามแผน / ช้ากว่าแผน / เลยกำหนด
+  const d=dates(it), S=pmIdx(...d.s), En=pmIdx(...d.e), today=Math.floor((Date.now()-PM_START)/864e5);
+  const f=today<S?0:Math.min(1,(today-S+1)/(En-S+1));
+  g.pace=g.pct>=100?"done":today<S?"wait":today>En?"late":g.pct>=f*100-10?"ok":"slow"; return g; }
+const PACE={done:"ลงแล้ว",wait:"ยังไม่ถึงช่วง",ok:"ตามแผน",slow:"ช้ากว่าแผน",late:"เลยกำหนด"};
+function ring(G){ const r=15, c=2*Math.PI*r, full=G.pct>=100;
+  return `<div class="rg"><svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="${r}" class="bg"/><circle cx="18" cy="18" r="${r}" class="fg" stroke-dasharray="${c}" stroke-dashoffset="${c*(1-Math.min(100,G.pct)/100)}"/></svg><b>${full?"✓":G.pct+"<small>%</small>"}</b></div>`; }
+// ไฮไลต์ตัวเลข (จำนวน/วันที่/หน่วย) ในรายละเอียด
+const NUMRE=/((?:≥|≤|>|<|~|≈)?\s?\d[\d,.]*(?:\s?[–-]\s?\d[\d,.]*)?(?:\s?(?:%|x|จุด|จอ|วิ(?:นาที)?|ชิ้น|ครั้ง|คน|ภาพ|งาน|จังหวัด|ตอน|กลุ่ม|ชม\.|นาที|วัน|ล้าน|บาท|ฉบับ|ช่อง|สื่อ|ราย|ต\.ค\.|พ\.ย\.|ธ\.ค\.|ม\.ค\.))?)/g;
+const hl=t=>{ const a=String(t||"").split(NUMRE); return a.map((x,i)=>i%2&&!/\($/.test(a[i-1])&&!/\.$/.test(a[i-1])?`<mark class="nm">${esc(x)}</mark>`:esc(x)).join(""); };
+let DQ=Promise.resolve();
+function saveDone(id,obj,msg){ const it=ITEMS[id]; obj.at=Date.now(); obj.m=msg; const rec=recOf("pmx:"+id,it.t,JSON.stringify(obj)); P()[rec.key]=rec; renderPM(); try{ logEv("pm-done",id+" "+msg); }catch(x){}
+  DQ=DQ.then(()=>K.api("setPost",[rec])).then(()=>K.toast(`${msg}: ${it.t} — ทุกคนเห็นแล้ว`)).catch(err=>K.toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err))); }
+function toggleAll(id){ const it=ITEMS[id], E=eff(it), g=prog(it,E); if(!g) return; const full=g.n===g.t;
+  if(!g.U&&full&&!g.D.a&&E.st==="live"){ K.toast("สถานะตั้งเป็น “เผยแพร่แล้ว” อยู่ — เปลี่ยนสถานะที่ปุ่มแก้ไข"); return; }
+  saveDone(id,g.U?{u:full?[]:g.U}:{a:full?0:1},full?"เอาติ๊กออก":"ติ๊กลงแล้ว"); }
+function toggleUnit(id,u){ const it=ITEMS[id], D=doneOf(id); const on=D.u.has(u); on?D.u.delete(u):D.u.add(u);
+  saveDone(id,{u:[...D.u]},`${on?"เอาติ๊กออก":"ติ๊กลงแล้ว"} ชิ้น ${/^i/.test(u)?"":"#"+u}`); }
 // ให้แท็บอื่นใช้วันจาก PLAN MEDIA (หมุดบุกสยาม/TVC/Press Tour บนไทม์ไลน์ KOL)
 window.pmNovDay=id=>{ const it=ITEMS[id]; if(!it) return null; const d=dates(it); return d.s[0]===11?d.s[1]:null; };
 
 function putPost(rec){ const Pm=P(), prev=Pm[rec.key]; Pm[rec.key]=rec; return K.api("setPost",[rec]).catch(err=>{ if(prev) Pm[rec.key]=prev; else delete Pm[rec.key]; throw err; }); }
 const recOf=(key,name,brief)=>({key,kol:"PLAN MEDIA",name,day:0,format:"pm",brief,status:"plan",link:"",by:who()});
 function saveDates(id,s,e,quiet){ if(ITEMS[id]&&ITEMS[id].alias) id=ITEMS[id].alias; const it=ITEMS[id];
-  const pr=putPost(recOf("pm:"+id,it.t,s?JSON.stringify({s,e}):"")); renderPM(); try{ K.render(); }catch(x){} try{ logEv("pm-move",id+" "+(s?fmtRange(s,e):"reset")); }catch(x){}
+  const pr=putPost(recOf("pm:"+id,it.t,JSON.stringify(s?{s,e,at:Date.now()}:{at:Date.now()}))); renderPM(); try{ K.render(); }catch(x){} try{ logEv("pm-move",id+" "+(s?fmtRange(s,e):"reset")); }catch(x){}
   return pr.then(()=>{ if(!quiet) K.toast(s?`ย้าย ${it.t} → ${fmtRange(s,e)} แล้ว`:`คืนวันที่ ${it.t} ตามเด็คแล้ว`); }).catch(err=>{ renderPM(); K.toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); }
-function saveContent(id,obj){ const it=ITEMS[id]; const str=obj?JSON.stringify(obj):""; const parts=[]; for(let i=0;i<str.length;i+=1500) parts.push(str.slice(i,i+1500));
+function saveContent(id,obj,what){ const it=ITEMS[id]; const prev=(readC(id)||{}).lg||[]; obj=Object.assign({},obj||{},{lg:[{f:what||(obj?"แก้เนื้อหา":"คืนเนื้อหาตามเด็ค"),by:who(),at:Date.now()}].concat(prev).slice(0,8)}); const reset=!what&&Object.keys(obj).length===1; const str=obj?JSON.stringify(obj):""; const parts=[]; for(let i=0;i<str.length;i+=1500) parts.push(str.slice(i,i+1500));
   let old=0; while(P()["pmc:"+id+":"+old]&&P()["pmc:"+id+":"+old].brief) old++;
   const jobs=[]; for(let i=0;i<Math.max(parts.length,old);i++) jobs.push(recOf("pmc:"+id+":"+i,it.t,parts[i]||""));
   jobs.forEach(r=>{ P()[r.key]=r; }); renderPM(); try{ logEv("pm-edit",id); }catch(x){}
-  return jobs.reduce((pr,r)=>pr.then(()=>K.api("setPost",[r])),Promise.resolve()).then(()=>K.toast(obj?`บันทึก ${obj.t||it.t} แล้ว — ทุกคนเห็นแล้ว`:`คืนเนื้อหา ${it.t} ตามเด็คแล้ว`)).catch(err=>K.toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err))); }
+  return jobs.reduce((pr,r)=>pr.then(()=>K.api("setPost",[r])),Promise.resolve()).then(()=>K.toast(!reset?`บันทึก ${obj.t||it.t} แล้ว — ทุกคนเห็นแล้ว`:`คืนเนื้อหา ${it.t} ตามเด็คแล้ว`)).catch(err=>K.toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err))); }
 
 function pmOpenGate(){ const m=$("#pmgate"); $("#pm-code").value=""; $("#pm-name").value=who()||K.reviewer()||""; $("#pm-err").hidden=true; m.hidden=false; setTimeout(()=>$("#pm-code").focus(),50); }
 function pmLogin(){ const code=$("#pm-code").value.trim(), name=$("#pm-name").value.trim();
@@ -141,22 +174,31 @@ function pmLogin(){ const code=$("#pm-code").value.trim(), name=$("#pm-name").va
 function pmLogout(){ try{ sessionStorage.removeItem("pm_who"); }catch(e){} try{ logEv("pm-logout",""); }catch(e){} setTab("review"); }
 window.openPmGate=pmOpenGate;
 
-let DRAG=null, EDIT=null, OPEN=null, FILTER="all", Q="";
+let DRAG=null, EDIT=null, OPEN=null, FILTER="all", Q="", HIDE=false;
 window.PM_BUSY=()=>!!DRAG||!!EDIT;
 const col=i=>i+2; // คอลัมน์ 1 = ป้ายแถว
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const GROUPS=[["all","ทั้งหมด"],[PH,"7 Phase"],["อีเวนต์","อีเวนต์"],["สื่อออฟไลน์","ออฟไลน์"],["ออนไลน์","ออนไลน์"]];
 function barHTML(it,row,r){ const d=dates(it), E2=eff(it); const S=pmIdx(...d.s), E=pmIdx(...d.e); const s=clamp(S,0,PM_DAYS-1), e=clamp(E,0,PM_DAYS-1);
-  const one=s===e, isPh=row.g===PH, label=isPh?fmtRange(d.s,d.e):E2.t;
+  const one=s===e, isPh=row.g===PH, G=prog(it,E2), full=G&&G.pct>=100, label=isPh?fmtRange(d.s,d.e):(full?"✓ ":"")+E2.t+(G&&G.t>1?` · ${G.n}/${G.t}`:"");
   const tip=`${E2.t} · ${fmtRange(d.s,d.e)} — ${E2.sum}${row.lock?" (วันตามแท็บแผน 3 ระยะ)":" · ลากเพื่อย้ายวัน / ลากขอบเพื่อยืดหด / กดเพื่อดูรายละเอียด"}`;
-  return `<div class="pm-bar${one?" pt":e-s<3?" sh":""}${isPh?" ph":""}${d.ch?" ch":""}${row.lock?" lk":""}${E>PM_DAYS-1?" over":""}${OPEN===it.id?" on":""}" data-id="${it.id}" style="grid-row:${r};grid-column:${col(s)}/${col(e)+1};--c:${row.c}" title="${esc(tip)}">${row.lock?"":`<i class="hl"></i><i class="hr"></i>`}<span>${esc(label)}</span></div>`; }
+  return `<div class="pm-bar${one?" pt":e-s<3?" sh":""}${isPh?" ph":""}${d.ch?" ch":""}${row.lock?" lk":""}${E>PM_DAYS-1?" over":""}${OPEN===it.id?" on":""}${full?" dn":""}" data-id="${it.id}" style="grid-row:${r};grid-column:${col(s)}/${col(e)+1};--c:${row.c}${G?`;--p:${G.pct}%`:""}" title="${esc(tip)}">${row.lock?"":`<i class="hl"></i><i class="hr"></i>`}<span>${esc(label)}</span></div>`; }
 
 const chip=c=>`<span class="pm-ch" data-c="${esc(c)}">${esc(c)}</span>`;
 const stPill=st=>{ const x=STS.find(a=>a[0]===st)||STS[0]; return `<span class="pm-st st-${x[0]}">${x[1]}</span>`; };
 function dateTile(d){ const one=d.s[0]===d.e[0]&&d.s[1]===d.e[1]; return `<div class="pm-dt"><b>${d.s[1]}</b><span>${MON[d.s[0]]}</span>${one?"":`<em>→ ${d.e[1]} ${MON[d.e[0]]}</em>`}</div>`; }
-function detBody(it,E){ if(!E.det.length) return `<p class="pm-empty">ยังไม่มีรายละเอียด — กด “แก้ไข” เพื่อเพิ่ม</p>`;
-  if(it.list) return `<ol class="pm-list">${E.det.map(x=>{ const m=String(x[0]).match(/^#([\d–-]+)\s*(.*)$/); return `<li><span class="no">${m?esc(m[1]):"•"}</span><div><b>${esc(m?m[2]:x[0])}</b>${x[1]?`<p>${esc(x[1])}</p>`:""}</div></li>`; }).join("")}</ol>`;
-  return `<dl class="pm-dl">${E.det.map(x=>`<dt>${esc(x[0])}</dt><dd>${esc(x[1]||"")}</dd>`).join("")}</dl>`; }
+function detBody(it,E){ const D=track(it)?doneOf(it.id):null; if(!E.det.length) return `<p class="pm-empty">ยังไม่มีรายละเอียด — กด “แก้ไข” เพื่อเพิ่ม</p>`;
+  if(it.list) return `<ol class="pm-list">${E.det.map((x,i)=>{ const m=String(x[0]).match(/^#([\d–-]+)\s*(.*)$/); const r=String(x[0]).match(/^#(\d+)(?:\s*[–-]\s*(\d+))?/); const us=[]; if(r){ for(let n=+r[1];n<=(r[2]?+r[2]:+r[1]);n++) us.push(String(n)); } else us.push("i"+i);
+    const all=D&&us.every(u=>D.u.has(u));
+    return `<li class="${all?"dn":""}">${D?`<div class="tks">${us.map(u=>`<button type="button" class="pm-tk${D.u.has(u)?" on":""}" data-tk="${it.id}" data-u="${u}" aria-pressed="${D.u.has(u)}" title="${D.u.has(u)?"ลงแล้ว — กดเพื่อเอาติ๊กออก":"กดเมื่อลงแล้ว"}">${D.u.has(u)?"✓":""}<span>${/^i/.test(u)?"•":u}</span></button>`).join("")}</div>`:`<span class="no">${m?esc(m[1]):"•"}</span>`}<div><b>${hl(m?m[2]:x[0])}</b>${x[1]?`<p>${hl(x[1])}</p>`:""}</div>${it.row.lock?"":`<button type="button" class="pm-li-ed" data-li="${it.id}" data-i="${i}" title="แก้หัวข้อนี้">✎</button>`}</li>`; }).join("")}</ol>`;
+  return `<dl class="pm-dl">${E.det.map((x,i)=>`<div class="pm-dr" data-r="${i}"><dt>${esc(x[0])}</dt><dd>${hl(x[1]||"")}</dd>${it.row.lock?"":`<button type="button" class="pm-li-ed" data-li="${it.id}" data-i="${i}" title="แก้หัวข้อนี้">✎</button>`}</div>`).join("")}</dl>`; }
+function editLine(id,i){ const it=ITEMS[id], a=$("#pmd-"+id); if(!it||!a) return; const E=eff(it), x=E.det[i]||["",""]; const host=a.querySelector(`[data-li="${id}"][data-i="${i}"]`).parentElement; EDIT=id+":"+i;
+  host.classList.add("ed"); host.innerHTML=`<form class="pm-led"><input name="h" value="${esc(x[0])}" placeholder="หัวข้อ"><textarea name="b" rows="3" placeholder="เนื้อหา">${esc(x[1]||"")}</textarea><div class="acts"><button type="button" class="btn ghost" data-x="del">ลบหัวข้อนี้</button><span class="sp"></span><button type="button" class="btn" data-x="cancel">ยกเลิก</button><button type="submit" class="btn primary">บันทึก</button></div></form>`;
+  const f=host.querySelector("form"); f.querySelector('[name="h"]').focus();
+  const done=det=>{ EDIT=null; if(!det){ renderPM(); return; } const lab=String(x[0]).match(/^#[\d–-]+/); saveContent(id,{t:E.t,sum:E.sum,ch:E.ch,st:E.st,own:E.own,note:E.note,det},(det.length<E.det.length?"ลบหัวข้อ ":"แก้หัวข้อ ")+(lab?lab[0]:"“"+String(x[0]).slice(0,24)+"”")); };
+  f.querySelector('[data-x="cancel"]').onclick=()=>done(null);
+  f.querySelector('[data-x="del"]').onclick=()=>{ if(!confirm("ลบหัวข้อนี้?")) return; done(E.det.filter((_,k)=>k!==i)); };
+  f.onsubmit=e=>{ e.preventDefault(); const h=f.h.value.trim(), b=f.b.value.trim(); if(!h){ f.h.focus(); return; } if(h===x[0]&&b===(x[1]||"")){ done(null); return; } done(E.det.map((y,k)=>k===i?[h,b]:y)); }; }
 function editorHTML(it,E,d){ const iso=a=>`${yOf(a[0])}-${String(a[0]).padStart(2,"0")}-${String(a[1]).padStart(2,"0")}`;
   return `<form class="pm-ed" data-id="${it.id}">
     <label class="w2">ชื่อหัวข้อ<input name="t" value="${esc(E.t)}" maxlength="120"></label>
@@ -174,33 +216,37 @@ function renderPM(){ const el=$("#pm"); if(!el||DRAG||EDIT) return; const sy=win
   const days=Array.from({length:PM_DAYS},(_,i)=>{ const dt=new Date(PM_START+i*864e5); return {d:dt.getUTCDate(),m:dt.getUTCMonth()+1,w:dt.getUTCDay()}; });
   let g=""; let i0=0; while(i0<PM_DAYS){ const m=days[i0].m; let i1=i0; while(i1<PM_DAYS&&days[i1].m===m) i1++; g+=`<div class="pm-mon" style="grid-column:${col(i0)}/${col(i1)}">${MON[m]} ${yy(m)}</div>`; i0=i1; }
   g+=days.map((x,i)=>`<div class="pm-day${x.w===0||x.w===6?" we":""}${x.w===1?" mo":""}" style="grid-column:${col(i)}">${x.d}</div>`).join("");
-  let r=3, grp="", changed=0, live=0, total=0;
+  let r=3, grp="", changed=0, total=0, dn=0, dt=0;
   PM_ROWS.forEach(row=>{ if(row.g!==grp){ grp=row.g; g+=`<div class="pm-grp" style="grid-row:${r}">${esc(grp)}</div>`; r++; }
-    row.items.forEach(it=>{ total++; if(dates(it).ch||eff(it).edited) changed++; if(eff(it).st==="live") live++; });
+    row.items.forEach(it=>{ total++; const E=eff(it), G=prog(it,E); if(dates(it).ch||E.edited) changed++; if(G){ dn+=G.n; dt+=G.t; } });
     g+=`<div class="pm-lab${row.tab?" lk":""}" style="grid-row:${r}"${row.tab?` data-go="${row.tab}"`:""}>${row.g===PH?`<b>${row.lab.slice(0,1)}</b>${esc(row.lab.slice(1))}`:esc(row.lab)}${row.pg?` <span class="pg">หน้า ${esc(row.pg)}</span>`:""}</div>`+row.items.map(it=>barHTML(it,row,r)).join(""); r++; });
   const todayLine=today>=0&&today<PM_DAYS?`<div class="pm-today" style="grid-column:${col(today)};grid-row:1/${r}"><i>วันนี้</i></div>`:"";
   // ปฏิทินรายสัปดาห์ (เริ่มวันจันทร์) — เรียงตามวันเริ่ม
   const q=Q.trim().toLowerCase();
-  const all=[]; PM_ROWS.forEach(row=>row.items.forEach(it=>{ if(FILTER!=="all"&&row.g!==FILTER) return; const E=eff(it); if(q&&!(E.t+" "+E.sum+" "+row.lab+" "+E.ch.join(" ")+" "+E.det.map(x=>x.join(" ")).join(" ")).toLowerCase().includes(q)) return; all.push({it,E,d:dates(it)}); }));
+  const all=[]; PM_ROWS.forEach(row=>row.items.forEach(it=>{ if(FILTER!=="all"&&row.g!==FILTER) return; const E=eff(it); if(HIDE){ const G=prog(it,E); if(!G||G.pct>=100) return; } if(q&&!(E.t+" "+E.sum+" "+row.lab+" "+E.ch.join(" ")+" "+E.det.map(x=>x.join(" ")).join(" ")).toLowerCase().includes(q)) return; all.push({it,E,d:dates(it)}); }));
   all.sort((a,b)=>pmIdx(...a.d.s)-pmIdx(...b.d.s)||PM_ROWS.indexOf(a.it.row)-PM_ROWS.indexOf(b.it.row));
   const wk={}; all.forEach(x=>{ const i=pmIdx(...x.d.s); const dt=new Date(PM_START+i*864e5); const mon=i-((dt.getUTCDay()+6)%7); (wk[mon]=wk[mon]||[]).push(x); });
   const weeks=Object.keys(wk).map(Number).sort((a,b)=>a-b).map(w=>{ const a=md(w), b=md(w+6), now=today>=w&&today<=w+6;
-    return `<section class="pm-wk${now?" now":""}"><header><b>${a[0]===b[0]?`${a[1]}–${b[1]} ${MON[a[0]]}`:`${a[1]} ${MON[a[0]]} – ${b[1]} ${MON[b[0]]}`}</b><span>${wk[w].length} รายการ</span>${now?`<i>สัปดาห์นี้</i>`:""}</header>${wk[w].map(({it,E,d})=>{ const row=it.row, op=OPEN===it.id;
-      return `<article class="pm-it${op?" open":""}" id="pmd-${it.id}" style="--c:${row.c}">
+    return `<section class="pm-wk${now?" now":""}"><header><b>${a[0]===b[0]?`${a[1]}–${b[1]} ${MON[a[0]]}`:`${a[1]} ${MON[a[0]]} – ${b[1]} ${MON[b[0]]}`}</b><span>${wk[w].length} รายการ</span>${(()=>{ let n=0,t=0; wk[w].forEach(x=>{ const G=prog(x.it,x.E); if(G){ n+=G.n; t+=G.t; } }); return t?`<span class="wd${n===t?" ok":""}">ทำแล้ว ${n}/${t} ชิ้น</span>`:""; })()}${now?`<i>สัปดาห์นี้</i>`:""}</header>${wk[w].map(({it,E,d})=>{ const row=it.row, op=OPEN===it.id, G=prog(it,E), full=G&&G.pct>=100;
+      return `<article class="pm-it${op?" open":""}${full?" dn":""}" id="pmd-${it.id}" style="--c:${row.c}"><div class="pm-rw">
+        ${G?`<button type="button" class="pm-prg p-${G.pace}" data-tog="${it.id}" title="คืบหน้า ${G.pct}% · ${PACE[G.pace]} — กดเพื่อเปิดแล้วติ๊กข้างใน">${ring(G)}<span>${G.pace==="done"?"ลงแล้ว":PACE[G.pace]}</span></button>`:`<span class="pm-prg na"></span>`}
         <button type="button" class="pm-row" data-tog="${it.id}">${dateTile(d)}<div class="pm-main"><div class="pm-k1"><span class="grp">${row.g===PH?"PHASE "+it.ph:esc(row.lab)}</span>${stPill(E.st)}${d.ch?`<span class="pm-mv">ย้ายวันแล้ว</span>`:""}${E.edited?`<span class="pm-mv">แก้เนื้อหาแล้ว</span>`:""}</div>
-          <b class="ttl">${esc(E.t)}</b><p class="sum">${esc(E.sum)}</p>${E.ch.length?`<div class="pm-chl">${E.ch.map(chip).join("")}</div>`:""}</div><span class="chev" aria-hidden="true">▾</span></button>
+          <b class="ttl">${esc(E.t)}</b><p class="sum">${esc(E.sum)}</p>${E.ch.length?`<div class="pm-chl">${E.ch.map(chip).join("")}</div>`:""}${G&&G.t>1?`<div class="pm-pg"><div class="bar"><i style="width:${Math.round(G.n/G.t*100)}%"></i></div><small>ทำแล้ว <b>${G.n}/${G.t}</b> ชิ้น</small></div>`:""}${(()=>{ const L=logOf(it); return L.length?`<small class="pm-log1">แก้ล่าสุด: ${logLine(L[0])}</small>`:""; })()}</div><span class="chev" aria-hidden="true">▾</span></button>
+        ${row.lock?"":`<button type="button" class="pm-qe" data-qedit="${it.id}">✎<span> แก้ไข</span></button>`}</div>
         ${op?`<div class="pm-body">${EDIT===it.id?"":`<div class="pm-cols"><div>${detBody(it,E)}${E.note?`<div class="pm-note"><b>โน้ตทีม</b>${esc(E.note)}</div>`:""}</div>
           <aside><div><span>ช่วงเวลา</span><b>${fmtRange(d.s,d.e)}</b>${d.ch?`<small>เด็ค: ${fmtRange(it.s,it.e||it.s)}${d.by?` · ย้ายโดย ${esc(d.by)}`:""}</small>`:""}</div>
             ${row.g===PH?`<div><span>น้ำหนักการสื่อสาร</span><div class="wt"><i style="width:${it.w}%"></i></div><small>City Branding ${it.w}% · Festival ${100-it.w}%</small></div>`:""}
-            <div><span>ผู้รับผิดชอบ</span><b>${esc(E.own||"—")}</b></div>${it.pg?`<div><span>อ้างอิงเด็ค</span><b>หน้า ${esc(it.pg)}</b></div>`:""}${E.by?`<div><span>แก้ล่าสุดโดย</span><b>${esc(E.by)}</b></div>`:""}
-            <div class="acts"><button type="button" class="btn primary" data-edit="${it.id}">✎ แก้ไข</button>${d.ch?`<button type="button" class="btn" data-reset="${it.id}">คืนวันที่ตามเด็ค</button>`:""}${row.tab?`<button type="button" class="btn" data-go="${row.tab}">ไปแท็บแผน 3 ระยะ →</button>`:""}</div></aside></div>`}</div>`:""}
+            <div><span>ผู้รับผิดชอบ</span><b>${esc(E.own||"—")}</b></div>${it.pg?`<div><span>อ้างอิงเด็ค</span><b>หน้า ${esc(it.pg)}</b></div>`:""}${(()=>{ const L=logOf(it); return L.length?`<div class="pm-hist"><span>บันทึกการแก้ไข</span><ul>${L.slice(0,8).map(x=>`<li>${logLine(x)}</li>`).join("")}</ul></div>`:""; })()}
+            ${G?`<div class="pm-tick"><span>ความคืบหน้า</span>${G.U?`<b>${G.n}/${G.t} ชิ้น · ${G.pct}%</b><small>ติ๊กเลขหน้าหัวข้อเมื่อชิ้นนั้นลงแล้ว</small><button type="button" class="btn" data-done="${it.id}">${full?"เอาติ๊กออกทั้งหมด":"✓ ติ๊กว่าลงครบทุกชิ้น"}</button>`:`<button type="button" class="pm-tbig${full?" on":""}" data-done="${it.id}" aria-pressed="${full}"><i>${full?"✓":""}</i>${full?"ลงแล้ว":"ติ๊กว่าลงแล้ว"}</button>${full?"":`<small>ตอนนี้ ${G.pct}% ตามสถานะ “${(STS.find(x=>x[0]===E.st)||STS[0])[1]}”</small>`}`}</div>`:""}
+            <div class="acts"><button type="button" class="btn primary big" data-edit="${it.id}">✎ แก้ไข</button>${d.ch?`<button type="button" class="btn" data-reset="${it.id}">คืนวันที่ตามเด็ค</button>`:""}${row.tab?`<button type="button" class="btn" data-go="${row.tab}">ไปแท็บแผน 3 ระยะ →</button>`:""}</div></aside></div>`}</div>`:""}
       </article>`; }).join("")}</section>`; }).join("");
   el.innerHTML=`<section class="box pm-head"><div><h2>PLAN MEDIA · แผนสื่อตามวันเวลา</h2><div class="pm-t">อวดเมืองโคราช 12 ต.ค. 69 – 10 ม.ค. 70</div>
-      <div class="pm-s">กดแถบ = เปิดรายละเอียดด้านล่าง · ลากแถบ = ย้ายวัน · ลากขอบ = ยืด/หด · กด “แก้ไข” ในรายละเอียดเพื่อแก้เนื้อหา — บันทึกแล้วทุกคนเห็นทันที${changed?` · <b>ปรับจากเด็คแล้ว ${changed} รายการ</b>`:""}</div></div>
-    <div class="pm-k"><div><b>${toEvent>0?toEvent:0}</b>วันถึงงาน</div><div><b>${total}</b>รายการ</div><div><b>${live}</b>เผยแพร่แล้ว</div><div><b>66</b>Short Video</div><div><b>11</b>ทีวี</div><div><b>20+</b>จุด OOH</div></div>
+      <div class="pm-s">กดแถบ = เปิดรายละเอียดด้านล่าง · กดวงกลม = ติ๊กว่าลงแล้ว · ลากแถบ = ย้ายวัน · ลากขอบ = ยืด/หด · กด “แก้ไข” ในรายละเอียดเพื่อแก้เนื้อหา — บันทึกแล้วทุกคนเห็นทันที${changed?` · <b>ปรับจากเด็คแล้ว ${changed} รายการ</b>`:""}</div></div>
+    <div class="pm-k"><div><b>${toEvent>0?toEvent:0}</b>วันถึงงาน</div><div><b>${total}</b>รายการ</div><div class="dn"><b>${dn}<small>/${dt}</small></b>ชิ้นที่ลงแล้ว<span class="kb"><i style="width:${dt?Math.round(dn/dt*100):0}%"></i></span></div><div><b>66</b>Short Video</div><div><b>11</b>ทีวี</div><div><b>20+</b>จุด OOH</div></div>
+    ${(()=>{ const A=[]; Object.values(ITEMS).forEach(it=>logOf(it).forEach(x=>A.push(Object.assign({t:eff(it).t,id:it.id},x)))); A.sort((a,b)=>b.at-a.at); return A.length?`<div class="pm-feed"><span>อัปเดตล่าสุด</span>${A.slice(0,4).map(x=>`<button type="button" data-goto="${x.id}"><b>${esc(x.t)}</b> — ${logLine(x)}</button>`).join("")}</div>`:""; })()}
     <div class="pm-who">🔓 ${esc(who())} <button class="btn" id="pm-out" type="button">ออก</button></div></section>
     <section class="box pm-wrap"><div class="pm-g" id="pm-g" style="grid-template-rows:repeat(${r-1},auto)">${g}${todayLine}</div></section>
-    <section class="pm-agenda"><div class="pm-tools"><h2>รายละเอียดตามสัปดาห์</h2><div class="pm-fl">${GROUPS.map(x=>`<button type="button" class="pm-f${FILTER===x[0]?" on":""}" data-f="${esc(x[0])}">${x[1]}</button>`).join("")}</div><input type="search" id="pm-q" placeholder="ค้นหา หัวข้อ / ช่องทาง / ประเด็น…" value="${esc(Q)}"></div>
+    <section class="pm-agenda"><div class="pm-tools"><h2>รายละเอียดตามสัปดาห์</h2><div class="pm-fl">${GROUPS.map(x=>`<button type="button" class="pm-f${FILTER===x[0]?" on":""}" data-f="${esc(x[0])}">${x[1]}</button>`).join("")}<button type="button" class="pm-f hd${HIDE?" on":""}" id="pm-hide">${HIDE?"✓ ":""}ซ่อนที่ลงแล้ว</button></div><input type="search" id="pm-q" placeholder="ค้นหา หัวข้อ / ช่องทาง / ประเด็น…" value="${esc(Q)}"></div>
       ${weeks||`<p class="pm-empty">ไม่พบรายการที่ตรงกับคำค้น</p>`}</section>`;
   window.scrollTo(0,sy);
   $("#pm-out").onclick=pmLogout;
@@ -208,6 +254,12 @@ function renderPM(){ const el=$("#pm"); if(!el||DRAG||EDIT) return; const sy=win
   el.querySelectorAll("[data-reset]").forEach(b=>b.onclick=()=>saveDates(b.dataset.reset,null,null));
   el.querySelectorAll("[data-tog]").forEach(b=>b.onclick=()=>{ OPEN=OPEN===b.dataset.tog?null:b.dataset.tog; renderPM(); });
   el.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openEditor(b.dataset.edit));
+  el.querySelectorAll("[data-qedit]").forEach(b=>b.onclick=()=>{ OPEN=b.dataset.qedit; renderPM(); openEditor(OPEN); });
+  el.querySelectorAll("[data-goto]").forEach(b=>b.onclick=()=>goDetail(b.dataset.goto));
+  el.querySelectorAll("[data-li]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); editLine(b.dataset.li,+b.dataset.i); });
+  el.querySelectorAll("[data-done]").forEach(b=>b.onclick=()=>toggleAll(b.dataset.done));
+  el.querySelectorAll("[data-tk]").forEach(b=>b.onclick=()=>toggleUnit(b.dataset.tk,b.dataset.u));
+  $("#pm-hide").onclick=()=>{ HIDE=!HIDE; renderPM(); };
   el.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{ FILTER=b.dataset.f; renderPM(); });
   const qi=$("#pm-q"); qi.oninput=()=>{ Q=qi.value; clearTimeout(qi._t); qi._t=setTimeout(()=>{ renderPM(); const n=$("#pm-q"); n.focus(); n.setSelectionRange(n.value.length,n.value.length); },250); };
   el.querySelectorAll(".pm-bar").forEach(b=>b.addEventListener("pointerdown",down));
@@ -223,7 +275,9 @@ function openEditor(id){ const it=ITEMS[id], a=$("#pmd-"+id); if(!it||!a) return
     const toMD=v=>{ const m=String(v||"").match(/^(\d{4})-(\d{2})-(\d{2})$/); return m?[+m[2],+m[3]]:null; };
     const s=toMD(fd.get("s")), en=toMD(fd.get("e")); EDIT=null;
     const same=JSON.stringify([obj.t,obj.sum,obj.ch,obj.st,obj.own,obj.det,obj.note])===JSON.stringify([E0.t,E0.sum,E0.ch,E0.st,E0.own,E0.det,E0.note]);
-    if(!same) saveContent(id,obj);
+    const NM={t:"ชื่อหัวข้อ",sum:"สรุป",ch:"ช่องทาง",st:"สถานะ",own:"ผู้รับผิดชอบ",det:"รายละเอียด",note:"โน้ต"};
+    const fl=Object.keys(NM).filter(k=>JSON.stringify(obj[k])!==JSON.stringify(E0[k])).map(k=>k==="st"?`สถานะ → ${(STS.find(x=>x[0]===obj.st)||STS[0])[1]}`:NM[k]);
+    if(!same) saveContent(id,obj,"แก้ "+fl.join(", "));
     if(!it.row.lock&&s&&en){ const d=dates(it); const a1=pmIdx(...s), b1=Math.max(a1,pmIdx(...en)); if(a1!==pmIdx(...d.s)||b1!==pmIdx(...d.e)){ const orig=[pmIdx(...it.s),pmIdx(...(it.e||it.s))]; if(a1===orig[0]&&b1===orig[1]) saveDates(id,null,null,!same); else saveDates(id,s,md(b1),!same); } }
     if(same) renderPM(); };
   setTimeout(()=>{ const t=f.querySelector('[name="t"]'); if(t) t.focus(); },30); }
