@@ -42,6 +42,11 @@ const fmtN=n=>n==null?"—":n>=1e6?(n/1e6).toFixed(n%1e6?1:0)+"M":n>=1e3?(n/1e3)
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 let data=[], baseline=null, filterTier="", q="", scale="sqrt", filterRv="", filterCode="", reviews={}, canWrite=true, reviewer="";
+/* รูปโปรไฟล์: avatars/map.json (ชื่อ→ไฟล์) โหลดครั้งเดียว */
+let AV={}; fetch("avatars/map.json?v="+Date.now()).then(r=>r.json()).then(m=>{ AV=m||{}; render(); }).catch(()=>{});
+const normName=s=>String(s||"").normalize("NFC").toLowerCase().replace(/[^a-z0-9ก-๙]/g,"");
+function avatarEl(d){ const f=AV[normName(d.name)]; const ini=esc(String(d.name||"?").trim().replace(/^[^a-zA-Zก-๙0-9]+/,"").slice(0,1).toUpperCase()||"?");
+  return f?`<div class="av"><img src="avatars/${f}" alt="" loading="lazy" width="40" height="40"></div>`:`<div class="av av-txt">${ini}</div>`; }
 let REASONS=["ไม่ตรงสาย / กลุ่มเป้าหมาย","ภาพลักษณ์ยังไม่เหมาะ","ยอดผู้ติดตามน้อยเกินไป","คอนเทนต์ไม่น่าสนใจ","เคยรับงานแล้วทิ้ง"];
 let history={};
 const rid=d=>"r_"+hash(d.key);
@@ -99,7 +104,7 @@ function rowEl(d,rankOf,reach,max,isNew){
     const st=statusOf(d), rk=rankOf.get(d), rv=rvOf(d), R=reviews[rid(d)]||{}; const row=document.createElement("div"); row.className="row"+(st?" "+st:"")+(rv?" "+rv:"")+(isNew?" sugnew":"");
     const nm=d.url?`<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.name)}</a>`:esc(d.name);
     row.innerHTML=`<div class="rk${rk<=10?" lead":""}">${d.sug?"★":rk}</div>
-      <div class="who"><div class="nm">${nm}${d.code?`<span class="badge code" title="Code: ${esc(d.code)}">${esc(d.code)}</span>`:""}${d.artist?`<span class="badge art">ARTIST</span>`:""}${d.sug?`<span class="badge sug" title="เพิ่มโดย ${esc(d.by)}">เพิ่มใหม่ · ${esc(d.by||"ลูกค้า")}</span>`:""}${st?`<span class="badge ${st}">${st==="new"?"NEW":"EDIT"}</span>`:""}</div><div class="ct" title="${esc(d.cat)}">${esc(d.cat||"—")}</div></div>
+      <div class="who">${avatarEl(d)}<div class="who-t"><div class="nm">${nm}${d.code?`<span class="badge code" title="Code: ${esc(d.code)}">${esc(d.code)}</span>`:""}${d.artist?`<span class="badge art">ARTIST</span>`:""}${d.sug?`<span class="badge sug" title="เพิ่มโดย ${esc(d.by)}">เพิ่มใหม่ · ${esc(d.by||"ลูกค้า")}</span>`:""}${st?`<span class="badge ${st}">${st==="new"?"NEW":"EDIT"}</span>`:""}</div><div class="ct" title="${esc(d.cat)}">${esc(d.cat||"—")}</div></div></div>
       <div class="trk" title="${fmtN(d.f)} ผู้ติดตาม"><div class="fill" style="width:${(widthOf(d.f,max)*100).toFixed(2)}%;background:${heat(d.f)}"></div></div>
       <div class="val">${fmtN(d.f)}<small>${d.f?Math.round(d.f/reach*1000)/10+"% ของ reach":"ไม่ระบุ"}</small></div>
       <div class="rvw"><div class="rv" title="ติ๊กผลพิจารณา"><button type="button" class="pass${rv==="pass"?" on":""}" data-s="pass">✓ ผ่าน</button><button type="button" class="fail${rv==="fail"?" on":""}" data-s="fail">✗ ไม่ผ่าน</button></div>${rv&&R.by?`<div class="meta" title="${esc((R.by||"")+(R.reason?" · "+R.reason:""))}"><b>${rv==="fail"?"✗":"✓"} ${esc(R.by)}</b>${R.reason?` · ${esc(R.reason)}`:""}</div>`:""}${histLine(d)?`<div class="meta" title="${esc(histLine(d))}">${esc(histLine(d))}</div>`:""}</div>`;
