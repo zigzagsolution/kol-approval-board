@@ -279,8 +279,9 @@ body.present .rv-lbl{display:inline-block}
 .phases.ai .ph .who-l{display:grid;gap:6px;margin-top:8px;min-width:0}
 .phases.ai .ph .wl{display:grid;grid-template-columns:30px minmax(0,1fr);min-width:0;gap:8px;align-items:center;font-size:12px}
 .phases.ai .ph .wl img,.phases.ai .ph .wl .f{width:30px;height:30px;border-radius:50%;object-fit:cover;display:grid;place-items:center;background:var(--track);font-family:var(--display);font-weight:700;font-size:11px;color:var(--mute);box-shadow:0 0 0 2px var(--paper),0 0 0 3px var(--ph)}
-.phases.ai .ph .wl b{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.phases.ai .ph .wl span{color:var(--mute);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.phases.ai .ph .wl{align-items:start}
+.phases.ai .ph .wl b{display:block;font-size:13px;line-height:1.3}
+.phases.ai .ph .wl span{color:var(--mute);display:block;line-height:1.4;word-break:break-word}
 .ai-list{display:grid;gap:4px}
 .ai-row{display:grid;grid-template-columns:40px minmax(0,1fr) auto;min-width:0;gap:12px;align-items:center;padding:7px 8px;border-radius:12px}
 .ai-row:hover{background:var(--bg)}
