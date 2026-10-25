@@ -388,3 +388,12 @@ body.present .sc-head .ai-acts{display:none}
 .pw{background:var(--bg);border-radius:12px;padding:12px 14px}
 .pw b{display:block;font-family:var(--display);font-size:13px;margin-bottom:4px;color:var(--ink)}
 .pw span{font-size:12px;color:var(--ink2);line-height:1.5}
+
+.sc .post.sug{opacity:.45;box-shadow:0 0 0 2px var(--paper),0 0 0 2px var(--ph);outline:2px dashed var(--ph);outline-offset:1px;cursor:pointer}
+.sc .post.sug .x{display:none!important}
+.sc .post.sug::after{content:"";}
+.sc .post.sug:hover{opacity:.9}
+.ulist{display:grid;gap:6px;margin-bottom:12px;max-height:50vh;overflow:auto}
+.ulist button{text-align:left;border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:8px 12px;font-size:13px;display:flex;justify-content:space-between;gap:10px}
+.ulist button:hover{border-color:var(--brand)}
+.ulist button small{color:var(--mute)}

@@ -87,6 +87,35 @@ function setDatesMany(list) {
     return {ok:true, n:list.length};
   } finally { lock.releaseLock(); }
 }
+/** สำเนาวันโพสต์ (ก่อนล้าง/ก่อนใช้แผน) — แท็บ Snapshots เก็บล่าสุด 20 ชุด */
+function snapshotDates(p) {
+  const sh = tab_("Snapshots", ["id","เวลา","โดย","รายการ","จำนวน","json"]);
+  const id = Utilities.getUuid().slice(0, 8); const snap = (p && p.snap) || {};
+  sh.appendRow([id, new Date(), String(p && p.by || "").slice(0,60), String(p && p.label || "").slice(0,80), Object.keys(snap).length, JSON.stringify(snap).slice(0, 45000)]);
+  const n = sh.getLastRow(); if (n > 21) sh.deleteRows(2, n - 21);
+  return {ok:true, id};
+}
+function listSnapshots() {
+  const ss = reviewSheet_().getParent(); const sh = ss.getSheetByName("Snapshots"); if (!sh || sh.getLastRow() < 2) return [];
+  const vals = sh.getRange(2, 1, sh.getLastRow()-1, 5).getValues();
+  return vals.map(r => ({ id: String(r[0]), at: r[1] ? new Date(r[1]).getTime() : 0, by: String(r[2]), label: String(r[3]), n: Number(r[4]||0) })).reverse();
+}
+function restoreSnapshot(p) {
+  const ss = reviewSheet_().getParent(); const sh = ss.getSheetByName("Snapshots"); if (!sh) throw new Error("ไม่มีสำเนา");
+  const vals = sh.getDataRange().getValues(); let snap = null;
+  for (let i = 1; i < vals.length; i++) if (String(vals[i][0]) === String(p && p.id)) { snap = JSON.parse(vals[i][5] || "{}"); break; }
+  if (!snap) throw new Error("ไม่พบสำเนา");
+  snapshotDates({ by: p.by, label: "ก่อนกู้คืน", snap: currentDates_() });
+  const list = Object.keys(snap).map(k => ({ key: k, name: snap[k].name, dates: snap[k].dates, by: p.by }));
+  // คนที่ไม่อยู่ในสำเนา → ล้างวัน
+  Object.keys(currentDates_()).forEach(k => { if (!snap[k]) list.push({ key: k, name: "", dates: "", by: p.by }); });
+  return setDatesMany(list);
+}
+function currentDates_() {
+  const sh = reviewSheet_(); const vals = sh.getDataRange().getValues(); const out = {};
+  for (let i = 1; i < vals.length; i++) if (vals[i][0] && String(vals[i][8]||"")) out[String(vals[i][0])] = { name: String(vals[i][1]), dates: String(vals[i][8]) };
+  return out;
+}
 /** คำแนะนำ KOL จากลูกค้า {name,link,f,cat,note,by,vid} */
 function addSuggestion(s) {
   if (!s || !s.name) throw new Error("missing name");
@@ -187,4 +216,4 @@ function setup_() {
   Logger.log("Review sheet: " + sh.getParent().getUrl());
 }
 
-return { getData, setReview, setPhase, setPhases, setDates, setDatesMany, addSuggestion, logEvents };
+return { getData, setReview, setPhase, setPhases, setDates, setDatesMany, snapshotDates, listSnapshots, restoreSnapshot, addSuggestion, logEvents };
