@@ -6,7 +6,7 @@
 <title>KOL Approval Board — MIDI digital</title>
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 <div class="prog" id="prog"><i></i></div>
@@ -20,11 +20,11 @@
     <button class="btn present-btn" id="present" type="button" title="โหมดนำเสนอ (เต็มจอ ซ่อนปุ่มติ๊ก)">▶ นำเสนอ</button>
   </div>
 </div>
-<nav class="tabs wrap" id="tabs">
+<div class="tabbar"><nav class="tabs wrap" id="tabs">
   <button type="button" class="tab active" data-tab="review">✓ พิจารณา <b id="t-review">0</b></button>
   <button type="button" class="tab" data-tab="team">★ ทีม <span id="t-target">50</span> คน <b id="t-team">0/50</b></button>
   <button type="button" class="tab" data-tab="plan">📅 แผน 3 ระยะ <b id="t-plan">0</b></button>
-</nav></header>
+</nav></div></header>
 
 <main class="wrap">
   <div class="msg" id="msg" hidden></div>
