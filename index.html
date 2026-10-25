@@ -35,7 +35,7 @@
       <div class="big">
         <div><div class="l">KOL ทั้งหมด</div><div class="v" id="k-n">0</div></div>
         <div><div class="l">Reach รวม</div><div class="v" id="k-reach">0</div></div>
-        <div><div class="l">ผ่าน / ไม่ผ่าน</div><div class="v"><span id="k-pass" style="color:var(--good)">0</span><span style="color:var(--mute);font-weight:500"> / </span><span id="k-fail" style="color:var(--accent)">0</span></div></div>
+        <div><div class="l">ยืนยัน / ตัดออก</div><div class="v"><span id="k-pass" style="color:var(--good)">0</span><span style="color:var(--mute);font-weight:500"> / </span><span id="k-fail" style="color:var(--accent)">0</span></div></div>
       </div>
       <div class="share" id="share"></div>
       <div class="share-l" id="share-l"></div>
@@ -60,7 +60,7 @@
   <div class="ctl" id="codechips" hidden></div>
 
   <section class="ladder">
-    <div class="axis"><span>#</span><span>KOL</span><div class="ticks" id="ticks"></div><span style="text-align:right">ผู้ติดตาม</span><span style="text-align:right">ผลพิจารณา</span></div>
+    <div class="axis"><span>#</span><span>KOL</span><div class="ticks" id="ticks"></div><span style="text-align:right">ผู้ติดตาม</span><span style="text-align:right">ยืนยัน / ตัดออก</span></div>
     <div id="rows"><div class="skel" id="skel"></div></div>
   </section>
 
@@ -79,7 +79,7 @@
       </div>
       <div class="tor" id="tor"></div>
     </section>
-    <section class="box"><h2>ช่องในทีม <span class="h-sub">เรียงตาม reach · ว่าง = รอเติม</span></h2><div class="slots" id="slots"></div><div class="spare" id="spare" hidden></div></section>
+    <section class="box"><h2>ช่องในทีม <span class="h-sub">ทีมงาน MIDI คัดมาให้แล้ว · เรียงตาม reach · ว่าง = รอเติม</span></h2><div class="slots" id="slots"></div><div class="spare" id="spare" hidden></div></section>
     <section class="band">
       <div class="box"><h2>ระดับผู้ติดตามของทีม</h2><div class="mix" id="mix-tier"></div></div>
       <div class="box"><h2>สมดุลหมวดคอนเทนต์</h2><div class="mix" id="mix-cat"></div></div>
@@ -92,7 +92,7 @@
     <p class="plan-note hash">Hashtag กลาง: <b>#อวดเมืองโคราช #อวดเมือง2569 #KBattle2026 #น่าลงทุน #น่าเที่ยว #น่าอยู่</b> · ทุกโพสต์แนบลิงก์/QR รายคนเพื่อแลกสิทธิ์หน้างาน</p>
     <section class="phases" id="phases"></section>
     <section class="box">
-      <h2>จัด KOL ลงระยะ <span class="h-sub">เฉพาะคนที่ผ่านแล้ว · เลือกได้มากกว่า 1 ระยะ</span></h2>
+      <h2>จัด KOL ลงระยะ <span class="h-sub">ทุกคนในทีม (ยกเว้นที่ตัดออก) · เลือกได้มากกว่า 1 ระยะ</span></h2>
       <div class="plan-list" id="plan-list"></div>
     </section>
     </div>
@@ -118,12 +118,12 @@
 <div class="modal" id="rmodal" hidden><div class="card" style="max-width:440px"><h3 id="r-title">ไม่ผ่านเพราะอะไร?</h3><p>จิ้มเลือกเหตุผล (เลือกได้มากกว่า 1) แล้วกดบันทึก</p>
 <div class="reasons" id="r-chips"></div>
 <input id="r-note" type="text" placeholder="เหตุผลเพิ่มเติม (ถ้ามี)" maxlength="200">
-<div class="acts"><button class="btn" id="r-cancel" type="button">ยกเลิก</button><button class="btn primary" id="r-ok" type="button">บันทึก ไม่ผ่าน</button></div></div></div>
+<div class="acts"><button class="btn" id="r-cancel" type="button">ยกเลิก</button><button class="btn primary" id="r-ok" type="button">ตัดออกจากทีม</button></div></div></div>
 <div class="modal" id="kmodal" hidden><div class="card kcard" id="kcard"></div></div>
 <div class="ov" id="ov" hidden><div class="ring" style="--p:0"><i id="ov-p">0%</i></div><div class="lb" id="ov-l">กำลังโหลดข้อมูล…</div></div>
 <div class="toast" id="toast" hidden></div>
 
 <script src="config.js?v=1"></script>
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
