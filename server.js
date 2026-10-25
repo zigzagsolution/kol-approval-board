@@ -18,7 +18,7 @@ function getData() {
   const ss = SpreadsheetApp.openById(SOURCE_ID);
   const sh = SOURCE_TAB ? ss.getSheetByName(SOURCE_TAB) : ss.getSheets()[0];
   const grid = sh.getDataRange().getDisplayValues();
-  return { grid: grid, reviews: readReviews_(), suggestions: readSuggestions_(), history: readHistory_(), reasons: REASONS, at: Date.now() };
+  return { grid: grid, reviews: readReviews_(), suggestions: readSuggestions_(), history: readHistory_(), posts: readPosts_(), reasons: REASONS, at: Date.now() };
 }
 
 /** บันทึกผล {key,name,status,by} — status: "pass" | "fail" | "" (ยกเลิก) */
@@ -86,6 +86,25 @@ function setDatesMany(list) {
       else sh.appendRow([String(r.key), String(r.name||""), "", "", new Date(), "", "", "", String(r.dates||""), String(r.by||"").slice(0,60)]); });
     return {ok:true, n:list.length};
   } finally { lock.releaseLock(); }
+}
+/** แนวคอนเทนต์ต่อโพสต์ {key,kol,name,day,format,brief,status,link,by} — แท็บ Posts */
+function setPost(p) {
+  if (!p || !p.key) throw new Error("missing key");
+  const lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    const sh = tab_("Posts", ["key","kol","ชื่อ KOL","วัน","รูปแบบ","แนวคอนเทนต์","สถานะ","ลิงก์โพสต์","แก้โดย","เวลา"]);
+    const vals = sh.getDataRange().getValues(); let row = -1;
+    for (let i = 1; i < vals.length; i++) if (String(vals[i][0]) === String(p.key)) { row = i+1; break; }
+    const rec = [String(p.key), String(p.kol||""), String(p.name||""), Number(p.day||0), String(p.format||"").slice(0,60), String(p.brief||"").slice(0,2000), String(p.status||"plan"), String(p.link||"").slice(0,300), String(p.by||"").slice(0,60), new Date()];
+    if (row > 0) sh.getRange(row, 1, 1, rec.length).setValues([rec]); else sh.appendRow(rec);
+    return {ok:true};
+  } finally { lock.releaseLock(); }
+}
+function readPosts_() {
+  const ss = reviewSheet_().getParent(); const sh = ss.getSheetByName("Posts"); if (!sh || sh.getLastRow() < 2) return [];
+  const vals = sh.getDataRange().getValues(); const out = [];
+  for (let i = 1; i < vals.length; i++) { if (!vals[i][0]) continue; out.push({ key: String(vals[i][0]), kol: String(vals[i][1]), name: String(vals[i][2]), day: Number(vals[i][3]||0), format: String(vals[i][4]||""), brief: String(vals[i][5]||""), status: String(vals[i][6]||"plan"), link: String(vals[i][7]||""), by: String(vals[i][8]||"") }); }
+  return out;
 }
 /** สำเนาวันโพสต์ (ก่อนล้าง/ก่อนใช้แผน) — แท็บ Snapshots เก็บล่าสุด 20 ชุด */
 function snapshotDates(p) {
@@ -216,4 +235,4 @@ function setup_() {
   Logger.log("Review sheet: " + sh.getParent().getUrl());
 }
 
-return { getData, setReview, setPhase, setPhases, setDates, setDatesMany, snapshotDates, listSnapshots, restoreSnapshot, addSuggestion, logEvents };
+return { getData, setReview, setPhase, setPhases, setDates, setDatesMany, setPost, snapshotDates, listSnapshots, restoreSnapshot, addSuggestion, logEvents };

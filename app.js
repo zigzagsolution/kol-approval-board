@@ -58,6 +58,9 @@ function avatarEl(d){ const f=AV[normName(d.name)]; const ini=esc(String(d.name|
   return f?`<div class="av"><img src="avatars/${f}" alt="" loading="lazy" width="40" height="40"></div>`:`<div class="av av-txt">${ini}</div>`; }
 const avSrc=d=>{ const f=AV[normName(d.name)]; return f?"avatars/"+f:""; };
 const iniOf=d=>esc(String(d.name||"?").trim().replace(/^[^a-zA-Zก-๙0-9]+/,"").slice(0,1).toUpperCase()||"?");
+let POSTS={}; /* key = rid_day → {format,brief,status,link,by} */
+const STATUS=[["plan","วางแผน"],["brief","บรีฟแล้ว"],["draft","ส่งดราฟต์"],["done","โพสต์แล้ว"]];
+const FORMATS=["คลิปสั้น (TikTok/Reels)","Vlog","ไลฟ์","โพสต์ภาพ/แคโรเซล","สตอรี่"];
 const datesOf=d=>{ const r=reviews[rid(d)]; return String(r&&r.dates||"").split(",").map(s=>+s).filter(n=>n>=6&&n<=29); };
 const phasesOf=d=>{ const r=reviews[rid(d)]; return String(r&&r.phase||"").split(",").map(s=>s.trim()).filter(Boolean); };
 /* ป้าย Code ที่แสดงบนหน้า: ชื่อที่โชว์ (ค่าว่าง = ไม่โชว์) */
@@ -262,7 +265,7 @@ function renderSched(all){ const el=$("#sc"); if(!el||$("#tabs .tab.active").dat
       h+=`<div class="who${SC_SEL===d.key?" sel":""}" draggable="true" data-k="${esc(d.key)}" title="ลากไปวางในช่องวัน หรือแตะเพื่อเลือก">${src?`<div class="av"><img src="${src}" alt=""></div>`:`<div class="av av-txt">${ini}</div>`}<div style="min-width:0"><div class="nm">${esc(d.name)}</div><div class="f">${fmtN(d.f)}${ph.length?` · ระยะ ${ph.join(",")}`:""}</div></div><span class="n">${ds.length?ds.length+" โพสต์":""}</span></div>`;
       TL_DAYS.forEach(x=>{ const dow=new Date(2026,10,x).getDay(); const inPh=ph.length?ph.includes(String(tlPhase(x))):false; const has=ds.includes(x);
         const sug=!ds.length&&(SUG[rid(d)]||[]).includes(x);
-        h+=`<div class="cell${dow===0||dow===6?" we":""}${inPh&&!has?" rec":""}" data-k="${esc(d.key)}" data-d="${x}" style="--ph:${c}">${has?`<div class="post" draggable="true" data-k="${esc(d.key)}" data-d="${x}" title="${esc(d.name)} · ${x} พ.ย. (กดเพื่อเอาออก)" style="--ph:${c}">${src?`<img src="${src}" alt="">`:""}<span class="x">×</span></div>`:sug?`<div class="post sug" data-sug="1" title="MIDI แนะนำ ${x} พ.ย. — กดเพื่อยืนยัน หรือลากรูปไปวันอื่น" style="--ph:${c}">${src?`<img src="${src}" alt="">`:""}</div>`:""}</div>`; }); }); });
+        h+=`<div class="cell${dow===0||dow===6?" we":""}${inPh&&!has?" rec":""}" data-k="${esc(d.key)}" data-d="${x}" style="--ph:${c}">${has?`<div class="post" draggable="true" data-k="${esc(d.key)}" data-d="${x}" title="${esc(d.name)} · ${x} พ.ย. — กดเพื่อดู/แก้แนวคอนเทนต์" style="--ph:${c}">${src?`<img src="${src}" alt="">`:""}<span class="st st-${postOf(d,x).status}"></span></div>`:sug?`<div class="post sug" data-sug="1" title="MIDI แนะนำ ${x} พ.ย. — กดเพื่อยืนยัน หรือลากรูปไปวันอื่น" style="--ph:${c}">${src?`<img src="${src}" alt="">`:""}</div>`:""}</div>`; }); }); });
   el.innerHTML=h;
   const withDates=all.filter(d=>datesOf(d).length).length, posts=Object.values(tot).reduce((s,t)=>s+t.n,0);
   $("#sc-sum").textContent=`กำหนดวันแล้ว ${withDates}/${all.length} คน · รวม ${posts} โพสต์ · รูปจาง ๆ เส้นประ = วันที่ MIDI แนะนำ (กดเพื่อยืนยัน หรือลากไปวันอื่น) · ขีดสีใต้ช่อง = วันในระยะของคนนั้น`;
@@ -271,9 +274,50 @@ function renderSched(all){ const el=$("#sc"); if(!el||$("#tabs .tab.active").dat
   el.querySelectorAll(".who,.post").forEach(n=>{ n.addEventListener("dragstart",e=>{ drag={k:n.dataset.k,from:n.dataset.d?+n.dataset.d:null}; e.dataTransfer.effectAllowed="move"; try{ e.dataTransfer.setData("text/plain",n.dataset.k); }catch(_){} n.classList.add("ghost"); }); n.addEventListener("dragend",()=>n.classList.remove("ghost")); });
   el.querySelectorAll(".cell").forEach(c=>{ c.addEventListener("dragover",e=>{ if(drag&&drag.k===c.dataset.k){ e.preventDefault(); c.classList.add("over"); } }); c.addEventListener("dragleave",()=>c.classList.remove("over"));
     c.addEventListener("drop",e=>{ e.preventDefault(); c.classList.remove("over"); if(!drag||drag.k!==c.dataset.k) return; const d=data.find(x=>x.key===c.dataset.k); const day=+c.dataset.d; let ds=datesOf(d); if(drag.from!=null) ds=ds.filter(x=>x!==drag.from); if(!ds.includes(day)) ds.push(day); setDates(d,ds); drag=null; });
-    c.addEventListener("click",e=>{ const pst=e.target.closest(".post"); if(pst&&pst.dataset.sug){ const d=data.find(x=>x.key===c.dataset.k); setDates(d,datesOf(d).concat([+c.dataset.d])); return; } if(pst){ const d=data.find(x=>x.key===c.dataset.k); setDates(d,datesOf(d).filter(x=>x!==+c.dataset.d)); return; } if(SC_SEL===c.dataset.k){ const d=data.find(x=>x.key===c.dataset.k); const ds=datesOf(d); if(!ds.includes(+c.dataset.d)){ ds.push(+c.dataset.d); setDates(d,ds); } } }); });
+    c.addEventListener("click",e=>{ const pst=e.target.closest(".post"); if(pst&&pst.dataset.sug){ const d=data.find(x=>x.key===c.dataset.k); setDates(d,datesOf(d).concat([+c.dataset.d])); return; } if(pst){ const d=data.find(x=>x.key===c.dataset.k); openPost(d,+c.dataset.d); return; } if(SC_SEL===c.dataset.k){ const d=data.find(x=>x.key===c.dataset.k); const ds=datesOf(d); if(!ds.includes(+c.dataset.d)){ ds.push(+c.dataset.d); setDates(d,ds); } } }); });
+  renderPostList(all);
   el.querySelectorAll(".who").forEach(w=>w.addEventListener("click",()=>{ SC_SEL=SC_SEL===w.dataset.k?null:w.dataset.k; el.querySelectorAll(".who").forEach(x=>x.classList.toggle("sel",x.dataset.k===SC_SEL)); if(SC_SEL) toast("แตะช่องวันเพื่อวาง "+(data.find(x=>x.key===SC_SEL)||{}).name); }));
 }
+/* ===== แนวคอนเทนต์ที่ MIDI ร่างให้ต่อโพสต์ ===== */
+function briefFor(d,day){ const p=tlPhase(day), txt=d.name+" "+d.cat, f=d.f||0; const local=LOCAL_RE.test(txt), travel=/ท่องเที่ยว|เที่ยว|travel|ทริป/i.test(d.cat||d.group), food=/กิน|อาหาร|อร่อย|food|ร้าน/i.test(d.cat), cafe=/คาเฟ่|cafe/i.test(d.cat), hotel=/ที่พัก|โรงแรม|hotel/i.test(d.cat), comm=/คอมมูนิตี้|community/i.test(d.cat), street=/แฟชั่น|fashion|สตรีท|street|เต้น|dance|ศิลปะ|art/i.test(txt);
+  const cta="ปิดท้าย: วัน 20–29 พ.ย. + ชี้ไป LINE OA อวดเมือง City Expo รับสิทธิ์ (Early Bird / Korat City Reward) + ลิงก์/QR ของตัวเอง";
+  let fmt=p===1?FORMATS[0]:p===2?FORMATS[1]:FORMATS[2], b="";
+  if(p===1){ if(d.artist) b=day===8?`คลิป 30–60 วิ จากงานบุกสยาม (ลาน Block i) "เจอกันโคราช 20–29 พ.ย." เล่า 3 ประสบการณ์ K-STREET / K-SOUNDER / K-EXPO ชวนแฟนคลับจองวัน`:`คลิป 30–60 วิ "SAVE THE DATE 20–29 พ.ย. มาเจอกันที่โคราช" พูด Key message ของแบรนด์ + ชวนแฟนคลับมาเจอ (ไอเดียศิลปินคิดเอง ตาม SOW)`;
+    else if(local) b=`"ของดีโคราชที่คนต่างจังหวัดยังไม่รู้" 1 อย่าง + บอกว่าปลายเดือนนี้มีเทศกาล 20–29 พ.ย. ชวนเพื่อนต่างจังหวัดจองวันมา`;
+    else if(travel||cafe) b=`นับถอยหลัง "อีก ${Math.max(1,20-day)} วัน เจอกันโคราช" แท็กเพื่อน 3 คนชวนจองวัน + โชว์ 1 สิ่งที่อยากไปทำในงาน`;
+    else b=`แนะนำเทศกาลอวดเมืองโคราช 20–29 พ.ย. ในสไตล์ช่องตัวเอง + ชวนผู้ติดตามจองวันไว้`; }
+  else if(p===2){ if(travel) b=`Vlog "โคราชหนึ่งวัน" เลือก 4 จุดจาก 4 Pillars (งานออกแบบ → Local Food → Street Art → Creative Space) จบด้วยแผนที่ตามรอย + "สัปดาห์หน้ามาเจอกันที่งาน"`;
+    else if(hotel) b=`ที่พัก + ที่จอดรถ + วิธีเดินทางเข้าเมือง (เส้นทาง Caravan) + แพ็กเกจ ททท. ไทยเที่ยวไทยพลัส คูปอง 2,000 — ตัดข้ออ้าง "ไปยังไง พักไหน"`;
+    else if(cafe) b=`คาเฟ่/Creative Space 2–3 แห่งใกล้จุดจัดงาน เป็นจุดเช็กอินก่อนเข้างาน + นัดเพื่อน "เสาร์นี้ไปโคราช"`;
+    else if(comm) b=`Line-up กิจกรรมแยกสาย (เต้น/เพลง/ช้อป/กิน) + แผนที่ 7 จุดในเมือง ให้คนเลือกวันที่ตรงกับตัวเอง`;
+    else if(d.artist) b=`Artist story / นับถอยหลังกับแฟนคลับ "อีก ${Math.max(1,20-day)} วัน" + ชวนมาเจอในงาน`;
+    else if(food) b=`Street Food โคราชที่ต้องมากิน 3 ร้าน + บอกว่าร้านเหล่านี้มาออกบูธในงาน ชวนวางแผนมากินวันเสาร์`;
+    else b=`แนะนำไฮไลต์งาน 1 อย่างที่ตรงกับช่องตัวเอง + ข้อมูลเดินทาง/ที่พัก ให้คนตัดสินใจมา`; }
+  else { if(day<=22) b=street?`ไลฟ์/คลิปสั้นจาก K-Street & K-Sounder เปิดเมือง (Dance Competition / Painting Show) "คืนนี้มีอะไร" + พิกัด + ชวนมาสุดสัปดาห์นี้`:`คลิปบรรยากาศเปิดเมือง 20–22 + Street Food "กินของใหม่ ใส่ของเท่" จบด้วยพิกัดบูธ + ชวนมาเสาร์-อาทิตย์นี้`;
+    else if(day<=26) b=local||food?`เช็กอิน 1 ใน 7 จุดในเมืองช่วงเย็น + รีวิวร้าน/บูธ Street Food "กินของใหม่ ใส่ของเท่" ให้เจ้าของเล่า 1 ประโยค จบด้วยพิกัดจริง + "สุดสัปดาห์ 27–29 งานใหญ่"`:`Highlight รายวันจาก 7 จุดในเมือง + ชวนมาวันเปิดงานทางการ 27 พ.ย. (K-BATx · รอบชิง · Jennifer Kim)`;
+    else b=d.artist||f>=3e5?`ไลฟ์/คลิปวันเปิดงานทางการ 27 พ.ย. — K-BATx Expo · K-Battle รอบชิง · Jennifer Kim × Orchestra ชวนคนที่ยังไม่มา "มาวันสุดท้ายยังทัน"`:`Highlight สุดสัปดาห์ปิดงาน + รีวิวบูธ/ร้านที่ชอบ + QR แลกสิทธิ์หน้างาน ชวนคนใกล้โคราชมา 28–29`;
+    if(day>=27&&!d.artist&&f<3e5) fmt=FORMATS[0]; }
+  return {format:fmt,brief:b+"\n"+cta+"\n"+HASHTAGS}; }
+const postKey=(d,day)=>rid(d)+"_"+day;
+const postOf=(d,day)=>{ const p=POSTS[postKey(d,day)]; if(p&&(p.brief||p.format)) return Object.assign({sug:false},p); const b=briefFor(d,day); return {format:b.format,brief:b.brief,status:"plan",link:"",sug:true}; };
+function openPost(d,day){ const p=postOf(d,day), ph=tlPhase(day), c=PHASES[ph-1].c, dow=["อา","จ","อ","พ","พฤ","ศ","ส"][new Date(2026,10,day).getDay()];
+  $("#pcard").innerHTML=`<button class="kc-x" type="button" id="pc-x" aria-label="ปิด">×</button><div class="pc-top" style="--ph:${c}">${avatarEl(d)}<div><h3>${esc(d.name)}</h3><div class="d">${fmtN(d.f)} · ${esc(d.cat||"—")}<br>ระยะ ${ph} · ${esc(PHASES[ph-1].title)}</div></div><div class="day"><b>${day}</b><small>พ.ย. · ${dow}</small></div></div>
+  <div class="pc-bd"><div class="pc-row"><label>รูปแบบ</label><select id="pc-fmt">${FORMATS.map(f=>`<option${f===p.format?" selected":""}>${esc(f)}</option>`).join("")}</select></div>
+  <div class="pc-row"><label>แนวคอนเทนต์</label><div><textarea id="pc-brief">${esc(p.brief)}</textarea><div class="pc-hint">${p.sug?`<b>MIDI ร่างให้</b> ตามระยะ/สายของช่อง — แก้ได้เลย`:`แก้ล่าสุดโดย ${esc(p.by||"-")}`} · กด "ใช้ร่างของ MIDI" เพื่อคืนค่าเริ่มต้น</div></div></div>
+  <div class="pc-row"><label>สถานะ</label><select id="pc-st">${STATUS.map(([k,l])=>`<option value="${k}"${k===p.status?" selected":""}>${l}</option>`).join("")}</select></div>
+  <div class="pc-row"><label>ลิงก์โพสต์</label><input id="pc-link" type="url" placeholder="วางลิงก์เมื่อโพสต์แล้ว" value="${esc(p.link||"")}"></div>
+  <div class="pc-acts"><div class="r"><button class="btn danger" type="button" id="pc-del">เอาออกจากวันนี้</button><button class="btn" type="button" id="pc-reset">ใช้ร่างของ MIDI</button></div><div class="r"><button class="btn" type="button" id="pc-cancel">ยกเลิก</button><button class="btn primary" type="button" id="pc-save">บันทึก</button></div></div></div>`;
+  $("#pmodal").hidden=false; const close=()=>{ $("#pmodal").hidden=true; }; $("#pc-x").onclick=close; $("#pc-cancel").onclick=close;
+  $("#pc-reset").onclick=()=>{ const b=briefFor(d,day); $("#pc-brief").value=b.brief; $("#pc-fmt").value=b.format; };
+  $("#pc-del").onclick=()=>{ close(); setDates(d,datesOf(d).filter(x=>x!==day)); };
+  $("#pc-save").onclick=()=>{ if(!reviewer){ askName(()=>$("#pc-save").click()); return; } const rec={key:postKey(d,day),kol:rid(d),name:d.name,day,format:$("#pc-fmt").value,brief:$("#pc-brief").value.trim(),status:$("#pc-st").value,link:$("#pc-link").value.trim(),by:reviewer}; const prev=POSTS[rec.key]; POSTS[rec.key]=rec; close(); render(); logEv("post",d.name+" "+day);
+    api("setPost",[rec]).then(()=>toast(`บันทึกแนวคอนเทนต์ ${d.name} · ${day} พ.ย.`)).catch(err=>{ if(prev) POSTS[rec.key]=prev; else delete POSTS[rec.key]; render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); }; logEv("post-open",d.name+" "+day); }
+$("#pmodal").addEventListener("click",e=>{ if(e.target.id==="pmodal") $("#pmodal").hidden=true; });
+function renderPostList(all){ const el=$("#plist"); if(!el) return; const items=[]; all.forEach(d=>datesOf(d).forEach(day=>items.push({d,day,p:postOf(d,day)}))); items.sort((a,b)=>a.day-b.day||(b.d.f||0)-(a.d.f||0));
+  if(!items.length){ el.innerHTML=`<div class="empty">ยังไม่มีโพสต์ในตาราง — กดรูปจาง ๆ ที่ MIDI แนะนำ หรือ "ใช้วันที่ MIDI วางไว้"</div>`; return; }
+  let last=0; el.innerHTML=items.map(({d,day,p})=>{ const ph=tlPhase(day), c=PHASES[ph-1].c; const head=last!==ph?`<div class="gh">ระยะ ${ph} · ${esc(PHASES[ph-1].title)} · ${esc(PHASES[ph-1].d.split(" ·")[0])}</div>`:""; last=ph; const st=STATUS.find(x=>x[0]===p.status)||STATUS[0];
+    return head+`<div class="pl2" data-k="${esc(d.key)}" data-d="${day}" style="--ph:${c}"><div class="dy">${day}<small>พ.ย.</small></div>${avatarEl(d)}<div style="min-width:0"><div class="nm">${esc(d.name)}</div><div class="fm">${esc(p.format)}</div></div><div class="br${p.sug?" sug":""}">${esc(p.brief.split("\n")[0])}</div><div class="stt st-${p.status}">${st[1]}</div></div>`; }).join("");
+  el.querySelectorAll(".pl2").forEach(r=>r.onclick=()=>{ const d=data.find(x=>x.key===r.dataset.k); if(d) openPost(d,+r.dataset.d); }); }
 function setDates(d,ds){ if(!reviewer){ askName(()=>setDates(d,ds)); return; } ds=[...new Set(ds)].sort((a,b)=>a-b); const id=rid(d); const prev=reviews[id]; reviews[id]=Object.assign({},prev,{dates:ds.join(",")}); render(); logEv("dates",d.name+" → "+(ds.join(",")||"-"));
   api("setDates",[{key:id,name:d.name,dates:ds.join(","),by:reviewer}]).then(()=>toast(`${d.name}: ${ds.length?ds.map(x=>x+" พ.ย.").join(", "):"ไม่มีวัน"}`)).catch(err=>{ reviews[id]=prev; render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); }
 /* MIDI วางวันให้: ใส่วันตามระยะ + ช่วงที่แนะนำ กระจายไม่ให้วันเดียวแน่น */
@@ -351,7 +395,7 @@ function setReview(d,status,reason){ if(!reviewer){ askName(()=>setReview(d,stat
 function sugRows(list){ return (list||[]).map((s,i)=>{ const it={idx:1000+i,group:"เพิ่มใหม่",name:String(s.name||"").trim(),cat:String(s.cat||"").trim(),fRaw:String(s.f||""),link:String(s.link||""),note:String(s.note||""),sug:true,by:String(s.by||"")}; it.f=num(it.fRaw); it.tier=tierOf(it.f); it.url=linkOf(it.link); it.artist=false; it.key="s:"+it.name.toLowerCase(); it.h=hash([it.cat,it.fRaw,it.link,it.note].join("|")); return it; }).filter(x=>x.name); }
 function applyPayload(p){ const rows=parseGrid(p.grid||[]).concat(sugRows(p.suggestions)); if(!rows.length) throw new Error("empty");
   if(!baseline){ baseline={}; rows.forEach(d=>baseline[d.key]=d.h); try{ const s=JSON.parse(localStorage.getItem("kol_ladder_seen")||"null"); if(s&&typeof s==="object") baseline=s; }catch(e){} }
-  data=rows; const m={}; (p.reviews||[]).forEach(r=>{ m[r.key]=r; }); reviews=m; history=p.history||{}; if(Array.isArray(p.reasons)&&p.reasons.length) REASONS=p.reasons; render(); progDone(); setStamp(p.at||Date.now()); setStatus("on","LIVE · อัปเดตทุก 30 วิ"); showMsg(""); }
+  data=rows; const m={}; (p.reviews||[]).forEach(r=>{ m[r.key]=r; }); reviews=m; POSTS={}; (p.posts||[]).forEach(x=>{ POSTS[x.key]=x; }); history=p.history||{}; if(Array.isArray(p.reasons)&&p.reasons.length) REASONS=p.reasons; render(); progDone(); setStamp(p.at||Date.now()); setStatus("on","LIVE · อัปเดตทุก 30 วิ"); showMsg(""); }
 /* ---- suggestions ---- */
 $("#suggest").onclick=()=>{ if(!reviewer){ askName(()=>$("#suggest").onclick()); return; } $("#smodal").hidden=false; setTimeout(()=>$("#s-name").focus(),50); };
 $("#s-cancel").onclick=()=>{ $("#smodal").hidden=true; };

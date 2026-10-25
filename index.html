@@ -6,7 +6,7 @@
 <title>KOL Approval Board — MIDI digital</title>
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
 <div class="prog" id="prog"><i></i></div>
@@ -129,8 +129,9 @@
   </div><!-- /plan -->
 
   <div class="page" data-page="sched" hidden>
-    <section class="box sc-head"><div><h2>ตารางโพสต์ 6–29 พ.ย. <span class="h-sub">ลากรูป KOL ไปวางในช่องวัน · วางได้หลายวันต่อคน · กด × เอาออก · มือถือ: แตะชื่อแล้วแตะวัน</span></h2><p class="sc-sum" id="sc-sum"></p></div><div class="ai-acts"><button class="btn primary" type="button" id="sc-auto">✨ ใช้วันที่ MIDI วางไว้ (เฉพาะคนที่ยังไม่มีวัน)</button><button class="btn" type="button" id="sc-undo">↶ ย้อนกลับ</button><button class="btn" type="button" id="sc-clear">ล้างทั้งหมด</button></div></section>
+    <section class="box sc-head"><div><h2>ตารางโพสต์ 6–29 พ.ย. <span class="h-sub">ลากรูป KOL ไปวางในช่องวัน · วางได้หลายวันต่อคน · กดรูปเพื่อดู/แก้แนวคอนเทนต์ · มือถือ: แตะชื่อแล้วแตะวัน</span></h2><p class="sc-sum" id="sc-sum"></p></div><div class="ai-acts"><button class="btn primary" type="button" id="sc-auto">✨ ใช้วันที่ MIDI วางไว้ (เฉพาะคนที่ยังไม่มีวัน)</button><button class="btn" type="button" id="sc-undo">↶ ย้อนกลับ</button><button class="btn" type="button" id="sc-clear">ล้างทั้งหมด</button></div></section>
     <section class="box sc-wrap"><div class="sc" id="sc"></div></section>
+    <section class="box"><h2>รายการโพสต์ + แนวคอนเทนต์ <span class="h-sub">MIDI ร่างให้ทุกโพสต์ · กดแถวเพื่อแก้/บันทึก · สีสถานะ: วางแผน · บรีฟแล้ว · ส่งดราฟต์ · โพสต์แล้ว</span></h2><div class="plist" id="plist"></div></section>
   </div><!-- /sched -->
 
   <div class="foot">
@@ -149,12 +150,13 @@
 <div class="reasons" id="r-chips"></div>
 <input id="r-note" type="text" placeholder="เหตุผลเพิ่มเติม (ถ้ามี)" maxlength="200">
 <div class="acts"><button class="btn" id="r-cancel" type="button">ยกเลิก</button><button class="btn primary" id="r-ok" type="button">ตัดออกจากทีม</button></div></div></div>
+<div class="modal" id="pmodal" hidden><div class="card pcard" id="pcard"></div></div>
 <div class="modal" id="umodal" hidden><div class="card" style="max-width:440px"><h3>ย้อนกลับไปเวอร์ชันก่อนหน้า</h3><p>ระบบเก็บสำเนาอัตโนมัติทุกครั้งก่อน "ล้าง" หรือ "ใช้วันที่ MIDI วางไว้" (เก็บล่าสุด 20 ครั้ง) เลือกเวอร์ชันที่จะกู้คืน</p><div class="ulist" id="ulist">กำลังโหลด…</div><div class="acts"><button class="btn" id="u-cancel" type="button">ปิด</button></div></div></div>
 <div class="modal" id="kmodal" hidden><div class="card kcard" id="kcard"></div></div>
 <div class="ov" id="ov" hidden><div class="ring" style="--p:0"><i id="ov-p">0%</i></div><div class="lb" id="ov-l">กำลังโหลดข้อมูล…</div></div>
 <div class="toast" id="toast" hidden></div>
 
 <script src="config.js?v=1"></script>
-<script src="app.js?v=14"></script>
+<script src="app.js?v=15"></script>
 </body>
 </html>
