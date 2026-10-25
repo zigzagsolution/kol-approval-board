@@ -374,3 +374,17 @@ body.present .rv-lbl{display:inline-block}
 .sc .ghost{opacity:.35}
 .sc .cell.sug::after{content:"+";position:absolute;inset:0;display:grid;place-items:center;color:var(--line);font-size:16px;font-weight:700;pointer-events:none}
 body.present .sc-head .ai-acts{display:none}
+
+/* ===== PR rationale ===== */
+.pr-why{margin-top:14px;border-top:4px solid var(--ink)}
+.pw-head{margin-bottom:12px}
+.pw-split{display:flex;height:26px;border-radius:8px;overflow:hidden;margin:10px 0 6px;font-family:var(--display);font-weight:700;font-size:11px;color:#fff}
+.pw-split div{display:flex;align-items:center;padding:0 10px;white-space:nowrap;overflow:hidden}
+.pw-split .seg1{background:#6f6f75}.pw-split .seg2{background:#f05a85}.pw-split .seg3{background:var(--brand)}
+.pw-cap{font-size:13px;color:var(--ink);font-weight:600}
+.pw-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:900px){.pw-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.pw-grid{grid-template-columns:1fr}}
+.pw{background:var(--bg);border-radius:12px;padding:12px 14px}
+.pw b{display:block;font-family:var(--display);font-size:13px;margin-bottom:4px;color:var(--ink)}
+.pw span{font-size:12px;color:var(--ink2);line-height:1.5}
