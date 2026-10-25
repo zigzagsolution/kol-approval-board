@@ -6,7 +6,7 @@
 <title>KOL Approval Board — MIDI digital</title>
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 <div class="prog" id="prog"><i></i></div>
@@ -17,11 +17,18 @@
     <span class="pill" id="stamp">อัปเดตล่าสุด —</span>
     <button class="btn" id="who" type="button" title="เปลี่ยนชื่อผู้พิจารณา">👤 <span id="who-n">ยังไม่ระบุชื่อ</span></button>
     <button class="btn" id="refresh" type="button">รีเฟรช</button>
+    <button class="btn present-btn" id="present" type="button" title="โหมดนำเสนอ (เต็มจอ ซ่อนปุ่มติ๊ก)">▶ นำเสนอ</button>
   </div>
-</div></header>
+</div>
+<nav class="tabs wrap" id="tabs">
+  <button type="button" class="tab active" data-tab="review">✓ พิจารณา <b id="t-review">0</b></button>
+  <button type="button" class="tab" data-tab="team">★ ทีม <span id="t-target">50</span> คน <b id="t-team">0/50</b></button>
+  <button type="button" class="tab" data-tab="plan">📅 แผน 3 ระยะ <b id="t-plan">0</b></button>
+</nav></header>
 
 <main class="wrap">
   <div class="msg" id="msg" hidden></div>
+  <div class="page" data-page="review">
   <section class="band">
     <div class="box">
       <h2>ภาพรวม</h2>
@@ -57,6 +64,43 @@
     <div id="rows"><div class="skel" id="skel"></div></div>
   </section>
 
+  </div><!-- /review -->
+
+  <div class="page" data-page="team" hidden>
+    <section class="box team-head">
+      <div class="team-prog">
+        <div class="tp-ring" id="tp-ring" style="--p:0"><i><b id="tp-n">0</b><small>/ <span id="tp-t">50</span></small></i></div>
+        <div class="tp-txt">
+          <h2>ทีม KOL <span id="tp-t2">50</span> คน</h2>
+          <div class="tp-line" id="tp-line">ผ่านแล้ว 0 · เหลืออีก 50 ช่อง</div>
+          <div class="tp-warn" id="tp-warn" hidden></div>
+        </div>
+        <div class="tp-stats" id="tp-stats"></div>
+      </div>
+    </section>
+    <section class="box"><h2>ช่องในทีม <span class="h-sub">เรียงตาม reach · ว่าง = รอเติม</span></h2><div class="slots" id="slots"></div><div class="spare" id="spare" hidden></div></section>
+    <section class="band">
+      <div class="box"><h2>ระดับผู้ติดตามของทีม</h2><div class="mix" id="mix-tier"></div></div>
+      <div class="box"><h2>สมดุลหมวดคอนเทนต์</h2><div class="mix" id="mix-cat"></div></div>
+    </section>
+  </div><!-- /team -->
+
+  <div class="page" data-page="plan" hidden>
+    <div class="ctl plan-mode"><div class="seg" id="plan-seg"><button type="button" class="active" data-m="manual">✋ จัดเอง</button><button type="button" data-m="ai">✨ AI จัดให้</button></div><span class="seg-l" id="plan-who"></span></div>
+    <div id="plan-manual">
+    <section class="phases" id="phases"></section>
+    <section class="box">
+      <h2>จัด KOL ลงระยะ <span class="h-sub">เฉพาะคนที่ผ่านแล้ว · เลือกได้มากกว่า 1 ระยะ</span></h2>
+      <div class="plan-list" id="plan-list"></div>
+    </section>
+    </div>
+    <div id="plan-ai" hidden>
+      <section class="box ai-head"><div><h2>✨ แผนที่ AI แนะนำ</h2><p class="ai-sum" id="ai-sum"></p></div><div class="ai-acts"><button class="btn primary" type="button" id="ai-apply-all">ใช้แผนนี้ทั้งหมด</button><button class="btn" type="button" id="ai-apply-unset">ใช้เฉพาะคนที่ยังไม่จัด</button></div></section>
+      <section class="phases ai" id="ai-phases"></section>
+      <section class="box"><h2>เหตุผลรายคน</h2><div class="ai-list" id="ai-list"></div></section>
+    </div>
+  </div><!-- /plan -->
+
   <div class="foot">
     <span>ข้อมูลอัปเดตอัตโนมัติทุก 30 วินาที · ผลพิจารณาบันทึกทันทีที่กด · ระบบบันทึกการใช้งานเพื่อติดตามการพิจารณา</span><span style="margin-left:auto;font-family:var(--display);color:var(--ink2)">MIDI digital Co., Ltd.</span>
   </div>
@@ -73,10 +117,11 @@
 <div class="reasons" id="r-chips"></div>
 <input id="r-note" type="text" placeholder="เหตุผลเพิ่มเติม (ถ้ามี)" maxlength="200">
 <div class="acts"><button class="btn" id="r-cancel" type="button">ยกเลิก</button><button class="btn primary" id="r-ok" type="button">บันทึก ไม่ผ่าน</button></div></div></div>
+<div class="modal" id="kmodal" hidden><div class="card kcard" id="kcard"></div></div>
 <div class="ov" id="ov" hidden><div class="ring" style="--p:0"><i id="ov-p">0%</i></div><div class="lb" id="ov-l">กำลังโหลดข้อมูล…</div></div>
 <div class="toast" id="toast" hidden></div>
 
 <script src="config.js?v=1"></script>
-<script src="app.js?v=4"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>

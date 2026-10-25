@@ -10,6 +10,11 @@ const TIERS=[
 const $=s=>document.querySelector(s);
 /* ===== API: คุยกับ Apps Script (ตั้งค่า URL ใน config.js) ===== */
 const APP_URL=(window.KOL_CONFIG&&window.KOL_CONFIG.APP_URL)||"";
+const TARGET=Number(window.KOL_CONFIG&&window.KOL_CONFIG.TARGET)||50;
+const PHASES=(window.KOL_CONFIG&&window.KOL_CONFIG.PHASES)||[
+  {n:"1",title:"โปรโมทก่อนงาน",d:"6–13 พ.ย. 2569",goal:"Awareness — Teaser เชิญชวน วันจัดงาน สถานที่ ไฮไลต์ Hashtag กลาง",c:"#6f6f75"},
+  {n:"2",title:"สร้างความสนใจ",d:"13–19 พ.ย. 2569",goal:"Consideration — ไฮไลต์กิจกรรม เส้นทางเที่ยว จุดเช็กอิน แผนทริปตัวอย่าง นับถอยหลัง",c:"#f05a85"},
+  {n:"3",title:"ระหว่างงาน",d:"20–29 พ.ย. 2569",goal:"Conversion — รีวิวประสบการณ์จริง บรรยากาศงาน จุดเช็กอิน ข้อมูลการเดินทาง",c:"#e8194c"}];
 function api(name,args){ if(!APP_URL) return Promise.reject(new Error("ยังไม่ได้ตั้งค่า APP_URL ใน config.js"));
   return fetch(APP_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({name,args:args||[]}),redirect:"follow"})
     .then(r=>r.json()).then(j=>{ if(j&&j.error) throw new Error(j.error); return j&&("result" in j)?j.result:j; }); }
@@ -47,6 +52,9 @@ let AV={}; fetch("avatars/map.json?v="+Date.now()).then(r=>r.json()).then(m=>{ A
 const normName=s=>String(s||"").normalize("NFC").toLowerCase().replace(/[^a-z0-9ก-๙]/g,"");
 function avatarEl(d){ const f=AV[normName(d.name)]; const ini=esc(String(d.name||"?").trim().replace(/^[^a-zA-Zก-๙0-9]+/,"").slice(0,1).toUpperCase()||"?");
   return f?`<div class="av"><img src="avatars/${f}" alt="" loading="lazy" width="40" height="40"></div>`:`<div class="av av-txt">${ini}</div>`; }
+const avSrc=d=>{ const f=AV[normName(d.name)]; return f?"avatars/"+f:""; };
+const iniOf=d=>esc(String(d.name||"?").trim().replace(/^[^a-zA-Zก-๙0-9]+/,"").slice(0,1).toUpperCase()||"?");
+const phasesOf=d=>{ const r=reviews[rid(d)]; return String(r&&r.phase||"").split(",").map(s=>s.trim()).filter(Boolean); };
 /* ป้าย Code ที่แสดงบนหน้า: ชื่อที่โชว์ (ค่าว่าง = ไม่โชว์) */
 const CODE_LABEL={ PANU:"P'PANU Recommend", BEE:"" };
 const codeLabel=c=>c?(c in CODE_LABEL?CODE_LABEL[c]:c):"";
@@ -100,18 +108,128 @@ function render(){
       const h=document.createElement("div"); h.className="tierhead"; h.innerHTML=`<i style="background:${t.c}"></i><b>${t.n}</b><span>${t.d} ผู้ติดตาม</span><span class="m">${g.length} คน · reach ${fmtN(r)} (${Math.round(r/reach*100)}%)</span>`; wrap.appendChild(h); }
     wrap.appendChild(rowEl(d,rankOf,reach,max,false)); });
   if(!vis.length) wrap.innerHTML=data.length?`<div class="empty">ไม่พบ KOL ที่ตรงกับตัวกรอง</div>`:`<div class="skel" id="skel"></div>`;
+  $("#t-review").textContent=nw; $("#t-team").textContent=`${Math.min(np,TARGET)}/${TARGET}`; $("#t-target").textContent=TARGET;
+  $("#t-plan").textContent=data.filter(d=>rvOf(d)==="pass"&&phasesOf(d).length).length+"/"+np;
+  renderTeam(sorted,reach); renderPlan(sorted); renderAI(sorted.filter(d=>rvOf(d)==="pass"));
 }
+/* ===== tabs ===== */
+let TAB="review"; try{ TAB=localStorage.getItem("kol_tab")||"review"; }catch(e){}
+function setTab(t){ TAB=t; document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===t)); document.querySelectorAll(".page").forEach(p=>p.hidden=p.dataset.page!==t); try{localStorage.setItem("kol_tab",t);}catch(e){} try{ logEv("tab",t); }catch(e){} }
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.tab)); setTab(TAB);
+$("#present").onclick=()=>{ const on=document.body.classList.toggle("present"); $("#present").textContent=on?"✕ ออกจากนำเสนอ":"▶ นำเสนอ"; if(on&&document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{}); if(!on&&document.fullscreenElement) document.exitFullscreen().catch(()=>{}); logEv("present",on?"on":"off"); };
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&document.body.classList.contains("present")) $("#present").click(); });
+/* ===== team 50 ===== */
+const CATS=[["ศิลปิน",/ศิลปิน|นักร้อง|ไอดอล/],["กิน / ร้านอาหาร",/กิน|อาหาร|อร่อย|ร้าน|food|restaurant/i],["คาเฟ่",/คาเฟ่|cafe/i],["ท่องเที่ยว",/เที่ยว|travel|ทริป/i],["ที่พัก / โรงแรม",/ที่พัก|โรงแรม|hotel/i],["ไลฟ์สไตล์ / อื่น ๆ",/.*/]];
+function catsOf(d){ const s=(d.cat||"")+" "+(d.group||""); const out=CATS.filter(([k,re],i)=>i<CATS.length-1&&re.test(s)).map(x=>x[0]); return out.length?out:[CATS[CATS.length-1][0]]; }
+function renderTeam(sorted,reachAll){
+  const passed=sorted.filter(d=>rvOf(d)==="pass"), fails=sorted.filter(d=>rvOf(d)==="fail"), np=passed.length;
+  const team=passed.slice(0,TARGET), spare=passed.slice(TARGET);
+  const pct=Math.min(100,Math.round(np/TARGET*100)); const ring=$("#tp-ring"); ring.style.setProperty("--p",pct); ring.classList.toggle("full",np>=TARGET);
+  $("#tp-n").textContent=Math.min(np,TARGET); $("#tp-t").textContent=TARGET; $("#tp-t2").textContent=TARGET;
+  const candidates=sorted.length-fails.length, need=TARGET-np, short=TARGET-candidates;
+  $("#tp-line").textContent=np>=TARGET?`ครบ ${TARGET} คนแล้ว${spare.length?` · สำรองอีก ${spare.length} คน`:""}`:`ผ่านแล้ว ${np} · เหลืออีก ${need} ช่อง · รอพิจารณา ${candidates-np} คน`;
+  const w=$("#tp-warn"); if(short>0){ w.hidden=false; w.className="tp-warn"; w.textContent=`⚠ ไม่ผ่าน ${fails.length} คน — ถึงที่เหลือผ่านหมดก็ยังขาด ${short} คน ทีมงานกำลังหา KOL เพิ่ม`; } else if(np>=TARGET){ w.hidden=false; w.className="tp-warn ok"; w.textContent="✓ ทีมครบตามเป้า"; } else if(fails.length){ w.hidden=false; w.className="tp-warn ok"; w.textContent=`ไม่ผ่าน ${fails.length} คน · ผู้สมัครที่เหลือยังพอครบ ${TARGET} (เผื่อได้อีก ${candidates-TARGET} คน)`; } else w.hidden=true;
+  const reach=team.reduce((s,d)=>s+(d.f||0),0);
+  $("#tp-stats").innerHTML=`<div><div class="l">Reach ของทีม</div><div class="v">${fmtN(reach)}</div></div><div><div class="l">จากผู้สมัครทั้งหมด</div><div class="v">${reachAll?Math.round(reach/reachAll*100):0}%</div></div><div><div class="l">หมวดที่ครอบคลุม</div><div class="v">${new Set(team.flatMap(catsOf)).size}/${CATS.length}</div></div>`;
+  const slots=$("#slots"); slots.innerHTML="";
+  for(let i=0;i<TARGET;i++){ const d=team[i]; const el=document.createElement("div");
+    if(!d){ el.className="slot empty"; el.textContent=i+1; }
+    else { const src=avSrc(d); el.className="slot"+(i<10?" lead":"")+(d.sug?" new":"")+(src?"":" txt"); el.title=`${d.name} · ${fmtN(d.f)}`; el.innerHTML=(src?`<img src="${src}" alt="" loading="lazy">`:iniOf(d))+`<span class="n">${i+1}</span>`+(d.sug?`<span class="nw">ใหม่</span>`:""); el.onclick=()=>openCard(d); }
+    slots.appendChild(el); }
+  const sp=$("#spare"); sp.hidden=!spare.length; sp.innerHTML=spare.length?`<span class="lb">สำรอง +${spare.length}</span>`+spare.map(d=>{ const src=avSrc(d); return `<div class="slot${src?"":" txt"}" title="${esc(d.name)}">${src?`<img src="${src}" alt="">`:iniOf(d)}</div>`; }).join("")+`<span>ผ่านเกินเป้า — ใช้แทนได้ถ้ามีคนถอนตัว</span>`:"";
+  sp.querySelectorAll(".slot").forEach((el,i)=>el.onclick=()=>openCard(spare[i]));
+  // mixes
+  const tierRows=TIERS.map(t=>[t.n+" "+t.d,team.filter(d=>d.tier===t.k).length,t.c]);
+  $("#mix-tier").innerHTML=mixHtml(tierRows,team.length,"คน");
+  const catRows=CATS.map(([k])=>[k,team.filter(d=>catsOf(d).includes(k)).length,"var(--ink2)"]);
+  $("#mix-cat").innerHTML=mixHtml(catRows,team.length,"คน",true);
+}
+function mixHtml(rows,total,unit,warnZero){ const mx=Math.max(1,...rows.map(r=>r[1])); return rows.map(([k,n,c])=>`<div class="m"><span class="k${warnZero&&!n&&total?" warn-k":""}" title="${esc(k)}">${esc(k)}${warnZero&&!n&&total?" · ยังไม่มี":""}</span><span class="bar"><i style="width:${n/mx*100}%;background:${c}"></i></span><span class="v">${n} ${unit}</span></div>`).join(""); }
+/* ===== plan (3 phases) ===== */
+function renderPlan(sorted){
+  const passed=sorted.filter(d=>rvOf(d)==="pass");
+  $("#phases").innerHTML=PHASES.map(p=>{ const list=passed.filter(d=>phasesOf(d).includes(p.n)); const reach=list.reduce((s,d)=>s+(d.f||0),0);
+    const faces=list.slice(0,14).map(d=>{ const s=avSrc(d); return s?`<img src="${s}" alt="" title="${esc(d.name)}" data-k="${esc(d.key)}">`:`<span class="f" title="${esc(d.name)}" data-k="${esc(d.key)}">${iniOf(d)}</span>`; }).join("")+(list.length>14?`<span class="f more">+${list.length-14}</span>`:"");
+    return `<div class="ph" style="--ph:${p.c}"><div class="num">ระยะที่ ${p.n}</div><h3>${esc(p.title)}</h3><div class="d">${esc(p.d)}</div><div class="g">${esc(p.goal)}</div><div class="kpi"><div><b>${list.length}</b>KOL</div><div><b>${fmtN(reach)}</b>reach</div></div><div class="faces">${list.length?faces:`<div class="empty-p">ยังไม่มี KOL ในระยะนี้ — เลือกจากรายชื่อด้านล่าง</div>`}</div></div>`; }).join("");
+  $("#phases").querySelectorAll("[data-k]").forEach(el=>el.onclick=()=>{ const d=data.find(x=>x.key===el.dataset.k); if(d) openCard(d); });
+  const unset=passed.filter(d=>!phasesOf(d).length).length; const byz=[...new Set(passed.map(d=>(reviews[rid(d)]||{}).phaseBy).filter(Boolean))]; $("#plan-who").textContent=byz.length?"จัดโดย: "+byz.join(", "):"";
+  const list=$("#plan-list"); if(!passed.length){ list.innerHTML=`<div class="empty">ยังไม่มี KOL ที่ผ่าน — ติ๊ก "ผ่าน" ในหน้าพิจารณาก่อน แล้วค่อยจัดลงระยะ</div>`; return; }
+  list.innerHTML=(unset?`<p class="plan-note">ยังไม่ได้จัดระยะ ${unset} คน (แถบเหลือง)</p>`:`<p class="plan-note">จัดครบทุกคนแล้ว ✓</p>`)+passed.map(d=>{ const ph=phasesOf(d); return `<div class="pl${ph.length?"":" unset"}" data-k="${esc(d.key)}">${avatarEl(d)}<div><div class="nm">${esc(d.name)}</div><div class="ct">${fmtN(d.f)} · ${esc(d.cat||"—")}</div></div><div class="pch">${PHASES.map(p=>`<button type="button" data-p="${p.n}" class="${ph.includes(p.n)?"on":""}" style="--ph:${p.c}" title="${esc(p.title)} ${esc(p.d)}">ระยะ ${p.n}</button>`).join("")}</div></div>`; }).join("");
+  list.querySelectorAll(".pl").forEach(el=>{ const d=data.find(x=>x.key===el.dataset.k); el.querySelector(".nm").onclick=()=>openCard(d); el.querySelector(".av").onclick=()=>openCard(d);
+    el.querySelectorAll(".pch button").forEach(b=>b.onclick=()=>togglePhase(d,b.dataset.p)); });
+}
+/* ===== AI plan: กติกาที่อธิบายได้ ===== */
+const LOCAL_RE=/โคราช|korat|นครราชสีมา|เมืองย่า|ย่าโม/i;
+function aiPlan(passed){
+  const total=passed.reduce((s,d)=>s+(d.f||0),0); const out=new Map();
+  passed.forEach(d=>{ const sc=[0,0,0], why=[[],[],[]]; const txt=(d.name+" "+d.cat); const f=d.f||0;
+    const add=(i,n,w)=>{ sc[i]+=n; why[i].push(w); };
+    if(d.artist){ add(0,4,"ศิลปิน — ทำ Teaser เปิดตัวแคมเปญ"); if(/สามารถ.{0,12}ร่วมงาน|วันเปิดงาน/.test(d.cat||"")) add(2,5,"ระบุว่ามาร่วมงานได้ (วันเปิดงาน) — ใช้ช่วงระหว่างงาน"); }
+    if(f>=1e6) add(0,3,"Mega "+fmtN(f)+" — เปิดการรับรู้วงกว้าง"); else if(f>=3e5) add(0,2,"Macro "+fmtN(f)+" — reach สูง เหมาะช่วงเปิดตัว"); else if(f>=1e5) add(1,1,"Macro ระดับกลาง — ชวนวางแผนทริป");
+    if(LOCAL_RE.test(txt)){ add(2,3,"บัญชีท้องถิ่นโคราช — รีวิวหน้างาน/จุดเช็กอินได้จริง"); add(1,1,"รู้จักพื้นที่ — แนะนำเส้นทางได้"); }
+    if(/ท่องเที่ยว|travel|ทริป|เที่ยว/i.test(d.cat||d.group)){ add(1,2,"สายท่องเที่ยว — เส้นทาง/แผนทริปตัวอย่าง"); if(f>=1.5e5) add(0,1,"ท่องเที่ยวยอดสูง — ชวนคนต่างจังหวัดมาโคราช"); }
+    if(/คาเฟ่|cafe/i.test(d.cat)) add(1,1,"คาเฟ่ — จุดเช็กอินช่วงวางแผน");
+    if(/กิน|อาหาร|อร่อย|food|ร้าน/i.test(d.cat)) add(2,2,"สายกิน — รีวิวร้านช่วงงานกระตุ้นให้มาจริง");
+    if(/ที่พัก|โรงแรม|hotel/i.test(d.cat)) add(1,2,"ที่พัก — ช่วยตัดสินใจค้างคืน");
+    if(/คอมมูนิตี้|community/i.test(d.cat)) add(1,2,"บัญชีคอมมูนิตี้ — กระจายข้อมูลกิจกรรม");
+    if(f<5e4&&!d.artist) add(2,1,"Micro/Nano — คอนเทนต์หน้างานจริงดูน่าเชื่อถือ");
+    if(!sc.some(Boolean)) add(1,1,"ทั่วไป — ใส่ช่วงกลางเพื่อเสริมความถี่");
+    out.set(d.key,{d,sc,why}); });
+  // assign primary = argmax; balance by reach share (target ≈ 32/30/38 %)
+  const target=[.32,.30,.38].map(x=>x*total); const sum=[0,0,0]; const pick={};
+  const order=[...passed].sort((a,b)=>(b.f||0)-(a.f||0));
+  order.forEach(d=>{ const o=out.get(d.key); const ranked=[0,1,2].sort((i,j)=>o.sc[j]-o.sc[i]||sum[i]-sum[j]); let i=ranked[0];
+    if(sum[i]+(d.f||0)>target[i]*1.25 && o.sc[ranked[1]]>=o.sc[i]-2){ i=ranked[1]; o.why[i].push("ย้ายมาระยะนี้เพื่อบาลานซ์ reach ระหว่างระยะ"); }
+    const ph=[String(i+1)]; const j=ranked.find(k=>k!==i&&o.sc[k]>=4&&o.sc[k]>=o.sc[i]-1); if(j!=null) ph.push(String(j+1));
+    sum[i]+=(d.f||0); pick[d.key]={d,ph:ph.sort(),whyP:o.why,why:ph.map(p=>o.why[+p-1]).flat().filter((v,k,a)=>a.indexOf(v)===k)}; });
+  // guarantee each phase has at least 3 people when possible
+  [0,1,2].forEach(i=>{ const have=Object.values(pick).filter(x=>x.ph.includes(String(i+1))).length; if(have<3&&passed.length>=9){ Object.values(pick).sort((a,b)=>out.get(b.d.key).sc[i]-out.get(a.d.key).sc[i]).filter(x=>!x.ph.includes(String(i+1))).slice(0,3-have).forEach(x=>{ x.ph.push(String(i+1)); x.ph.sort(); x.whyP[i].push("เพิ่มให้ระยะที่ "+(i+1)+" มีคนครบขั้นต่ำ"); x.why.push("เพิ่มให้ระยะที่ "+(i+1)+" มีคนครบขั้นต่ำ"); }); } });
+  return {pick,sum,total};
+}
+let PLAN_MODE="manual";
+$("#plan-seg").querySelectorAll("button").forEach(b=>b.onclick=()=>{ PLAN_MODE=b.dataset.m; $("#plan-seg").querySelectorAll("button").forEach(x=>x.classList.toggle("active",x===b)); $("#plan-manual").hidden=PLAN_MODE!=="manual"; $("#plan-ai").hidden=PLAN_MODE!=="ai"; logEv("planmode",PLAN_MODE); render(); });
+function renderAI(passed){
+  if(PLAN_MODE!=="ai") return; if(!passed.length){ $("#ai-sum").textContent="ยังไม่มี KOL ที่ผ่าน — AI จะจัดให้ทันทีเมื่อมีคนผ่าน"; $("#ai-phases").innerHTML=""; $("#ai-list").innerHTML=""; return; }
+  const {pick,total}=aiPlan(passed); const rows=Object.values(pick);
+  const cnt=[1,2,3].map(n=>rows.filter(x=>x.ph.includes(String(n))).length), sum=[1,2,3].map(n=>rows.filter(x=>x.ph.includes(String(n))).reduce((s,x)=>s+(x.d.f||0),0));
+  const diff=rows.filter(x=>{ const cur=phasesOf(x.d).join(","); return cur&&cur!==x.ph.join(","); }).length, unset=rows.filter(x=>!phasesOf(x.d).length).length;
+  $("#ai-sum").innerHTML=`จัด ${rows.length} คน จาก reach รวม ${fmtN(total)} → ระยะ 1 <b>${cnt[0]} คน · ${fmtN(sum[0])}</b> (${Math.round(sum[0]/total*100)}%) · ระยะ 2 <b>${cnt[1]} คน · ${fmtN(sum[1])}</b> (${Math.round(sum[1]/total*100)}%) · ระยะ 3 <b>${cnt[2]} คน · ${fmtN(sum[2])}</b> (${Math.round(sum[2]/total*100)}%)<br>หลักคิด: เปิดตัวด้วยศิลปิน + ยอดสูงสุด → ช่วงกลางให้สายท่องเที่ยว/คาเฟ่/ที่พักช่วยวางแผน → ช่วงงานให้คนท้องถิ่นโคราชและสายกินรีวิวหน้างานจริง · ศิลปินทำให้ระยะ 1 reach สูงสุดโดยธรรมชาติ ส่วนระยะ 2–3 บาลานซ์จำนวนคนและ reach ให้ใกล้เคียงกัน${unset?` · ยังไม่จัดเอง ${unset} คน`:""}${diff?` · ต่างจากที่จัดเองอยู่ ${diff} คน`:""}`;
+  $("#ai-phases").innerHTML=PHASES.map(p=>{ const list=rows.filter(x=>x.ph.includes(p.n)).sort((a,b)=>(b.d.f||0)-(a.d.f||0)); const reach=list.reduce((s,x)=>s+(x.d.f||0),0);
+    return `<div class="ph" style="--ph:${p.c}"><div class="num">ระยะที่ ${p.n}</div><h3>${esc(p.title)}</h3><div class="d">${esc(p.d)}</div><div class="kpi"><div><b>${list.length}</b>KOL</div><div><b>${fmtN(reach)}</b>reach</div></div><div class="who-l">${list.slice(0,8).map(x=>{ const s=avSrc(x.d); return `<div class="wl" data-k="${esc(x.d.key)}">${s?`<img src="${s}" alt="">`:`<span class="f">${iniOf(x.d)}</span>`}<div><b>${esc(x.d.name)}</b><span>${fmtN(x.d.f)} · ${esc((x.whyP[+p.n-1]||[])[0]||x.why[0]||"")}</span></div></div>`; }).join("")}${list.length>8?`<div class="wl"><span class="f">+${list.length-8}</span><div><span>ดูทั้งหมดด้านล่าง</span></div></div>`:""}</div></div>`; }).join("");
+  $("#ai-phases").querySelectorAll("[data-k]").forEach(el=>el.onclick=()=>{ const d=data.find(x=>x.key===el.dataset.k); if(d) openCard(d); });
+  $("#ai-list").innerHTML=rows.sort((a,b)=>(b.d.f||0)-(a.d.f||0)).map(x=>{ const cur=phasesOf(x.d).join(","); return `<div class="ai-row" data-k="${esc(x.d.key)}">${avatarEl(x.d)}<div><div class="nm">${esc(x.d.name)} <i style="font-style:normal;color:var(--mute);font-weight:500;font-size:12px">${fmtN(x.d.f)}</i>${cur&&cur!==x.ph.join(",")?` <span class="diff">จัดเองไว้: ระยะ ${esc(cur)}</span>`:""}</div><div class="why">${x.why.map(w=>"• "+esc(w)).join(" ")}</div></div><div class="tags">${x.ph.map(p=>`<span style="--ph:${PHASES[+p-1].c}">ระยะ ${p}</span>`).join("")}</div></div>`; }).join("");
+  $("#ai-list").querySelectorAll(".ai-row .av,.ai-row .nm").forEach(el=>el.onclick=()=>{ const d=data.find(x=>x.key===el.closest(".ai-row").dataset.k); if(d) openCard(d); });
+  $("#ai-apply-all").onclick=()=>applyAI(rows,false); $("#ai-apply-unset").onclick=()=>applyAI(rows,true);
+}
+function applyAI(rows,onlyUnset){ if(!reviewer){ askName(()=>applyAI(rows,onlyUnset)); return; } const list=rows.filter(x=>!onlyUnset||!phasesOf(x.d).length).map(x=>({key:rid(x.d),name:x.d.name,phase:x.ph.join(","),by:reviewer}));
+  if(!list.length){ toast("ไม่มีรายการให้จัด"); return; } const prev={}; list.forEach(r=>{ prev[r.key]=reviews[r.key]; reviews[r.key]=Object.assign({},reviews[r.key],{phase:r.phase}); }); render(); logEv("ai-apply",(onlyUnset?"unset ":"all ")+list.length);
+  api("setPhases",[list]).then(()=>{ toast(`บันทึกแผน AI ให้ ${list.length} คนแล้ว`); PLAN_MODE="manual"; $("#plan-seg").querySelector('[data-m="manual"]').click(); }).catch(err=>{ Object.assign(reviews,prev); render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); }
+function togglePhase(d,p){ if(!reviewer){ askName(()=>togglePhase(d,p)); return; } const id=rid(d); const cur=phasesOf(d); const next=cur.includes(p)?cur.filter(x=>x!==p):cur.concat([p]).sort(); const prev=reviews[id];
+  reviews[id]=Object.assign({},prev,{phase:next.join(",")}); render(); logEv("phase",d.name+" → "+(next.join(",")||"-"));
+  api("setPhase",[{key:id,name:d.name,phase:next.join(","),by:reviewer}]).then(()=>toast(`${d.name}: ระยะ ${next.join(", ")||"—"}`)).catch(err=>{ reviews[id]=prev; render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); }
+/* ===== KOL card ===== */
+function openCard(d){ const R=reviews[rid(d)]||{}, rv=rvOf(d), ph=phasesOf(d), t=TIERS.find(x=>x.k===d.tier); const rank=[...data].sort((a,b)=>(b.f||0)-(a.f||0)).indexOf(d)+1; const hs=histLine(d);
+  $("#kcard").innerHTML=`<button class="kc-x" type="button" id="kc-x" aria-label="ปิด">×</button><div class="kc-top">${avatarEl(d)}<div><h3>${esc(d.name)}</h3><div class="ct">${esc(d.cat||"—")}</div>${codeLabel(d.code)?`<span class="badge code">${esc(codeLabel(d.code))}</span>`:""}${d.artist?` <span class="badge art">ARTIST</span>`:""}</div></div>
+  <div class="kc-bd"><div class="kc-k"><div><div class="l">ผู้ติดตาม</div><div class="v">${fmtN(d.f)}</div></div><div><div class="l">ระดับ</div><div class="v">${t?t.n:"—"}</div></div><div><div class="l">อันดับ reach</div><div class="v">#${rank}</div></div></div>
+  <div class="kc-row">ผลพิจารณา: <b>${rv==="pass"?"✓ ผ่าน":rv==="fail"?"✗ ไม่ผ่าน":"รอพิจารณา"}</b>${R.by?` · โดย ${esc(R.by)}`:""}${R.reason?`<br>เหตุผล: ${esc(R.reason)}`:""}</div>${hs?`<div class="kc-row">ประวัติ: ${esc(hs)}</div>`:""}${d.note?`<div class="kc-row">หมายเหตุ: ${esc(d.note).slice(0,300)}</div>`:""}
+  ${rv==="pass"?`<div class="kc-row">ระยะในแผน:<div class="kc-ph">${PHASES.map(p=>`<button type="button" data-p="${p.n}" class="${ph.includes(p.n)?"on":""}" style="--ph:${p.c}">ระยะ ${p.n}</button>`).join("")}</div></div>`:""}
+  <div class="kc-acts">${d.url?`<a class="btn" href="${esc(d.url)}" target="_blank" rel="noopener">เปิดโปรไฟล์ ↗</a>`:""}<button class="btn${rv==="pass"?" primary":""}" type="button" id="kc-pass">✓ ผ่าน</button><button class="btn" type="button" id="kc-fail">✗ ไม่ผ่าน</button></div></div>`;
+  $("#kmodal").hidden=false; $("#kc-x").onclick=closeCard; $("#kc-pass").onclick=()=>{ closeCard(); setReview(d,rv==="pass"?"":"pass",""); }; $("#kc-fail").onclick=()=>{ closeCard(); if(rv==="fail") setReview(d,"",""); else askReason(d); };
+  $("#kcard").querySelectorAll(".kc-ph button").forEach(b=>b.onclick=()=>{ togglePhase(d,b.dataset.p); setTimeout(()=>openCard(d),50); }); logEv("card",d.name); }
+function closeCard(){ $("#kmodal").hidden=true; }
+$("#kmodal").addEventListener("click",e=>{ if(e.target.id==="kmodal") closeCard(); });
 function histLine(d){ const hs=history[rid(d)]||[]; const fails=[...new Set(hs.filter(x=>x.status==="fail").map(x=>x.by).filter(Boolean))], passes=[...new Set(hs.filter(x=>x.status==="pass").map(x=>x.by).filter(Boolean))];
   const parts=[]; if(fails.length) parts.push("ไม่ผ่าน: "+fails.join(", ")); if(passes.length) parts.push("ผ่าน: "+passes.join(", ")); return parts.join(" · "); }
 function rowEl(d,rankOf,reach,max,isNew){
     const st=statusOf(d), rk=rankOf.get(d), rv=rvOf(d), R=reviews[rid(d)]||{}; const row=document.createElement("div"); row.className="row"+(st?" "+st:"")+(rv?" "+rv:"")+(isNew?" sugnew":"");
-    const nm=d.url?`<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.name)}</a>`:esc(d.name);
+    const nm=`<a href="#" class="open-card">${esc(d.name)}</a>`;
     row.innerHTML=`<div class="rk${rk<=10?" lead":""}">${d.sug?"★":rk}</div>
       <div class="who">${avatarEl(d)}<div class="who-t"><div class="nm">${nm}${codeLabel(d.code)?`<span class="badge code" title="Code: ${esc(d.code)}">${esc(codeLabel(d.code))}</span>`:""}${d.artist?`<span class="badge art">ARTIST</span>`:""}${d.sug?`<span class="badge sug" title="เพิ่มโดย ${esc(d.by)}">เพิ่มใหม่ · ${esc(d.by||"ลูกค้า")}</span>`:""}${st?`<span class="badge ${st}">${st==="new"?"NEW":"EDIT"}</span>`:""}</div><div class="ct" title="${esc(d.cat)}">${esc(d.cat||"—")}</div></div></div>
       <div class="trk" title="${fmtN(d.f)} ผู้ติดตาม"><div class="fill" style="width:${(widthOf(d.f,max)*100).toFixed(2)}%;background:${heat(d.f)}"></div></div>
       <div class="val">${fmtN(d.f)}<small>${d.f?Math.round(d.f/reach*1000)/10+"% ของ reach":"ไม่ระบุ"}</small></div>
-      <div class="rvw"><div class="rv" title="ติ๊กผลพิจารณา"><button type="button" class="pass${rv==="pass"?" on":""}" data-s="pass">✓ ผ่าน</button><button type="button" class="fail${rv==="fail"?" on":""}" data-s="fail">✗ ไม่ผ่าน</button></div>${rv&&R.by?`<div class="meta" title="${esc((R.by||"")+(R.reason?" · "+R.reason:""))}"><b>${rv==="fail"?"✗":"✓"} ${esc(R.by)}</b>${R.reason?` · ${esc(R.reason)}`:""}</div>`:""}${histLine(d)?`<div class="meta" title="${esc(histLine(d))}">${esc(histLine(d))}</div>`:""}</div>`;
+      <div class="rvw"><span class="rv-lbl ${rv||"wait"}">${rv==="pass"?"✓ ผ่าน":rv==="fail"?"✗ ไม่ผ่าน":"รอพิจารณา"}</span><div class="rv" title="ติ๊กผลพิจารณา"><button type="button" class="pass${rv==="pass"?" on":""}" data-s="pass">✓ ผ่าน</button><button type="button" class="fail${rv==="fail"?" on":""}" data-s="fail">✗ ไม่ผ่าน</button></div>${rv&&R.by?`<div class="meta" title="${esc((R.by||"")+(R.reason?" · "+R.reason:""))}"><b>${rv==="fail"?"✗":"✓"} ${esc(R.by)}</b>${R.reason?` · ${esc(R.reason)}`:""}</div>`:""}${histLine(d)?`<div class="meta" title="${esc(histLine(d))}">${esc(histLine(d))}</div>`:""}</div>`;
     row.querySelectorAll(".rv button").forEach(b=>b.onclick=()=>{ const s=rv===b.dataset.s?"":b.dataset.s; if(s==="fail") askReason(d); else setReview(d,s,""); });
+    row.querySelector(".open-card").onclick=e=>{ e.preventDefault(); openCard(d); }; row.querySelector(".av").onclick=()=>openCard(d); row.querySelector(".av").style.cursor="pointer";
     return row;
 }
 $("#q").addEventListener("input",e=>{q=e.target.value.trim().toLowerCase();render();}); $("#q").addEventListener("change",e=>{ if(e.target.value.trim()) logEv("search",e.target.value.trim()); });
@@ -140,7 +258,8 @@ $("#r-ok").onclick=()=>{ if(!rTarget) return; const note=$("#r-note").value.trim
 function setReview(d,status,reason){ if(!reviewer){ askName(()=>setReview(d,status,reason)); return; }
   const id=rid(d); const prev=reviews[id]; reviews[id]=Object.assign({},prev,{status,by:reviewer,reason:reason||"",at:Date.now()}); if(!history[id]) history[id]=[]; if(status) history[id].push({status,by:reviewer}); render();
   logEv("review",(status||"clear")+" | "+d.name);
-  api("setReview",[{key:id,name:d.name,status,by:reviewer,reason:reason||"",code:d.code||""}])
+  const fails=data.filter(x=>rvOf(x)==="fail").length, short=TARGET-(data.length-fails);
+  api("setReview",[{key:id,name:d.name,status,by:reviewer,reason:reason||"",code:d.code||"",extra:status==="fail"?`ไม่ผ่านแล้ว ${fails} คน · ${short>0?`ต้องหา KOL เพิ่มอีก ${short} คน`:`ยังพอครบ ${TARGET} (เผื่อ ${-short} คน)`}`:""}])
     .then(()=>{ toast(status?`บันทึกแล้ว: ${d.name} — ${status==="pass"?"ผ่าน":"ไม่ผ่าน"}`:`ยกเลิกผลของ ${d.name}`); })
     .catch(err=>{ reviews[id]=prev; render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); }
 function sugRows(list){ return (list||[]).map((s,i)=>{ const it={idx:1000+i,group:"เพิ่มใหม่",name:String(s.name||"").trim(),cat:String(s.cat||"").trim(),fRaw:String(s.f||""),link:String(s.link||""),note:String(s.note||""),sug:true,by:String(s.by||"")}; it.f=num(it.fRaw); it.tier=tierOf(it.f); it.url=linkOf(it.link); it.artist=false; it.key="s:"+it.name.toLowerCase(); it.h=hash([it.cat,it.fRaw,it.link,it.note].join("|")); return it; }).filter(x=>x.name); }

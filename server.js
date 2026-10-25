@@ -42,6 +42,35 @@ function setReview(r) {
   } finally { lock.releaseLock(); }
 }
 
+/** บันทึกระยะในแผน {key,name,phase:"1,3",by} — เก็บคอลัมน์ G ของแถว Reviews */
+function setPhase(r) {
+  if (!r || !r.key) throw new Error("missing key");
+  const lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    const sh = reviewSheet_(); const vals = sh.getDataRange().getValues();
+    if (String(vals[0][6]||"") !== "ระยะ") sh.getRange(1, 7).setValue("ระยะ");
+    let row = -1; for (let i = 1; i < vals.length; i++) if (String(vals[i][0]) === String(r.key)) { row = i+1; break; }
+    if (String(vals[0][7]||"") !== "ผู้จัดระยะ") sh.getRange(1, 8).setValue("ผู้จัดระยะ");
+    if (row < 0) { sh.appendRow([String(r.key), String(r.name||""), "", "", new Date(), "", String(r.phase||""), String(r.by||"").slice(0,60)]); }
+    else sh.getRange(row, 7, 1, 2).setValues([[String(r.phase||""), String(r.by||"").slice(0,60)]]);
+    return {ok:true};
+  } finally { lock.releaseLock(); }
+}
+/** บันทึกระยะหลายคนทีเดียว (ปุ่ม AI จัดให้) */
+function setPhases(list) {
+  if (!list || !list.length) return {ok:true, n:0};
+  const lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    const sh = reviewSheet_(); const vals = sh.getDataRange().getValues();
+    if (String(vals[0][6]||"") !== "ระยะ") sh.getRange(1, 7).setValue("ระยะ");
+    if (String(vals[0][7]||"") !== "ผู้จัดระยะ") sh.getRange(1, 8).setValue("ผู้จัดระยะ");
+    const idx = {}; for (let i = 1; i < vals.length; i++) idx[String(vals[i][0])] = i+1;
+    list.slice(0, 300).forEach(r => { if (!r || !r.key) return; const row = idx[String(r.key)];
+      if (row) sh.getRange(row, 7, 1, 2).setValues([[String(r.phase||""), String(r.by||"").slice(0,60)]]);
+      else sh.appendRow([String(r.key), String(r.name||""), "", "", new Date(), "", String(r.phase||""), String(r.by||"").slice(0,60)]); });
+    return {ok:true, n:list.length};
+  } finally { lock.releaseLock(); }
+}
 /** คำแนะนำ KOL จากลูกค้า {name,link,f,cat,note,by,vid} */
 function addSuggestion(s) {
   if (!s || !s.name) throw new Error("missing name");
@@ -108,7 +137,7 @@ function readHistory_() {
 /** แจ้งเตือน LINE เมื่อมี "ไม่ผ่าน" (ทำงานเมื่อใส่ LINE_TOKEN + LINE_TO) */
 function notifyLine_(r) {
   const C = config_(); const APP_URL = C.APP_URL || "";
-  const text = "❌ KOL ไม่ผ่าน\n" + r.name + (r.code ? " [" + r.code + "]" : "") + "\nโดย: " + (r.by||"-") + "\nเหตุผล: " + (r.reason||"-") + (APP_URL ? "\n" + APP_URL : "");
+  const text = "❌ KOL ไม่ผ่าน\n" + r.name + (r.code ? " [" + r.code + "]" : "") + "\nโดย: " + (r.by||"-") + "\nเหตุผล: " + (r.reason||"-") + (r.extra ? "\n" + r.extra : "") + (APP_URL ? "\n" + APP_URL : "");
   try { pushLine_(text); } catch (e) { /* ไม่ให้การแจ้งเตือนล้มทำให้บันทึกผลล้ม */ }
 }
 /** ส่ง LINE push แล้วคืนผลเป็นข้อความ (บันทึกลงแท็บ LineLog ด้วย) */
@@ -132,7 +161,7 @@ function readReviews_() {
   const out = [];
   for (let i = 1; i < vals.length; i++) {
     if (!vals[i][0]) continue;
-    out.push({ key: String(vals[i][0]), name: String(vals[i][1]), status: String(vals[i][2]), by: String(vals[i][3]), at: vals[i][4] ? new Date(vals[i][4]).getTime() : null, reason: String(vals[i][5]||"") });
+    out.push({ key: String(vals[i][0]), name: String(vals[i][1]), status: String(vals[i][2]), by: String(vals[i][3]), at: vals[i][4] ? new Date(vals[i][4]).getTime() : null, reason: String(vals[i][5]||""), phase: String(vals[i][6]||""), phaseBy: String(vals[i][7]||"") });
   }
   return out;
 }
@@ -142,4 +171,4 @@ function setup_() {
   Logger.log("Review sheet: " + sh.getParent().getUrl());
 }
 
-return { getData, setReview, addSuggestion, logEvents };
+return { getData, setReview, setPhase, setPhases, addSuggestion, logEvents };
