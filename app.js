@@ -122,7 +122,7 @@ function render(){
   const tl=teamList(sorted);
   $("#t-review").textContent=nw; $("#t-team").textContent=`${Math.min(tl.all.length,TARGET)}/${TARGET}`; $("#t-target").textContent=TARGET;
   $("#t-plan").textContent=tl.all.filter(d=>phasesOf(d).length).length+"/"+tl.all.length;
-  renderTeam(sorted,reach); renderPlan(sorted); renderAI(tl.all); renderSched(tl.all);
+  NWP=nanoPlan(tl.all); renderTeam(sorted,reach); renderPlan(sorted); renderNanoWeek(tl.all); renderAI(tl.all); renderSched(tl.all);
   $("#t-sched").textContent=tl.all.filter(d=>datesOf(d).length).length+"/"+tl.all.length;
 }
 /* ===== tabs ===== */
@@ -215,10 +215,13 @@ const TL_DAYS=Array.from({length:24},(_,i)=>6+i);
 const TL_W={6:2,7:2,8:4,9:3,10:3,11:3,12:4,13:4,14:4,15:5,16:5,17:5,18:5,19:5,20:4,21:4,22:3,23:2,24:2,25:2,26:3,27:4,28:4,29:3};
 const TL_EV=[{d:8,t:"บุกสยาม",s:"Kick-off กทม. KOL 5–8 คน"},{d:13,t:"เริ่ม TVC + เทงบสื่อ",s:"ช่วงเร่งคนตัดสินใจ 13–19"},{d:19,t:"Press Tour",s:"สื่อไลฟ์สไตล์ 19–20"},{d:20,t:"เปิดเมือง",s:"K-Street / K-Sounder 20–22"},{d:23,t:"7 จุดในเมือง",s:"ช่วงเย็น 23–26"},{d:27,t:"เปิดงานทางการ",s:"K-BATx · รอบชิง · Jennifer Kim 27–29"}];
 const tlPhase=d=>d<13?1:d<20?2:3;
+/* Nano Week (รายละเอียดใต้ autoDates) */
+const NW={from:13,to:19,n:15,c:"#7b4bd6",title:"Nano Week",d:"13–19 พ.ย. 2569 · 7 วันก่อนงาน"};
 function renderTimeline(){ const el=$("#timeline"); if(!el||el.dataset.done) return; el.dataset.done=1; const today=new Date(); const td=(today.getMonth()===10&&today.getFullYear()===2026)?today.getDate():0;
   const cells=[]; const spans=[[1,6,12,"ระยะ 1 · 6–12"],[2,13,19,"ระยะ 2 · 13–19"],[3,20,29,"ระยะ 3 · 20–29"]];
   spans.forEach(([p,a,b,l])=>cells.push(`<div class="tl-phase ph${p}" data-n="${p}" style="grid-column:${a-5}/${b-4}">${l}</div>`));
   TL_DAYS.forEach(d=>{ const w=TL_W[d]||1, p=tlPhase(d), dow=new Date(2026,10,d).getDay(); cells.push(`<div class="tl-bar ph${p}${w>=4?" hot":""}" style="grid-column:${d-5}" title="${d} พ.ย. · ความเข้ม ${w}/5"><i style="height:${w*20}%"></i></div>`); cells.push(`<div class="tl-day${dow===0||dow===6?" we":""}${d===td?" today":""}" style="grid-column:${d-5}">${d}</div>`); });
+  cells.push(`<div class="tl-nw" style="grid-column:${NW.from-5}/${NW.to-4}" title="${esc(NW.title)} — Nano ${NW.n} คน โพสต์ที่ 2">✦ ${esc(NW.title)} · Nano ${NW.n} คน โพสต์ที่ 2 · ${NW.from}–${NW.to}</div>`);
   TL_EV.forEach((e,i)=>{ const p=tlPhase(e.d); const nxt=TL_EV[i+2]?TL_EV[i+2].d:30; const span=Math.max(2,Math.min(5,nxt-e.d,30-e.d)); cells.push(`<div class="tl-ev ph${p}" style="grid-column:${e.d-5}/span ${span};grid-row:${4+(i%2)}"><div class="pin"><b>${esc(e.t)}</b>${esc(e.s)}</div></div>`); });
   el.innerHTML=`<h2>ไทม์ไลน์ 6–29 พ.ย. <span class="h-sub">แถบสูง = ช่วงที่ควรเน้นโพสต์ · หมุด = เหตุการณ์จากแผน PR</span></h2><div class="tl-grid">${cells.join("")}</div><div class="tl-legend"><span><i></i>เน้นมาก: 12–19 (สัปดาห์ตัดสินใจเดินทาง) และ 8 บุกสยาม</span><span><i class="lo"></i>ระหว่างงาน: ไลฟ์/Highlight เป็นหลัก เน้นสุดสัปดาห์ 20–21 และ 27–28</span><span>ตัวหนา = เสาร์–อาทิตย์ · สัดส่วนเป้าหมาย: ก่อนงาน ≈65% / ระหว่างงาน ≈35%</span></div>`; }
 renderTimeline();
@@ -253,7 +256,7 @@ let SC_SEL=null;
 function renderSched(all){ const el=$("#sc"); if(!el||$("#tabs .tab.active").dataset.tab!=="sched") return;
   const ev={}; TL_EV.forEach(e=>ev[e.d]=e.t);
   const SUG={}; try{ autoDates(all).forEach(r=>{ SUG[r.key]=r.dates.split(",").map(Number).filter(Boolean); }); }catch(e){}
-  const tot={}; all.forEach(d=>datesOf(d).forEach(x=>{ tot[x]=tot[x]||{n:0,r:0}; tot[x].n++; tot[x].r+=(d.f||0); }));
+  const tot={}; all.forEach(d=>datesOf(d).concat(nanoDatesOf(d)).forEach(x=>{ tot[x]=tot[x]||{n:0,r:0}; tot[x].n++; tot[x].r+=(d.f||0); }));
   let h=`<div class="corner">KOL · ${all.length} คน</div>`+TL_DAYS.map(x=>{ const dow=new Date(2026,10,x).getDay(); return `<div class="hd ph${tlPhase(x)}${dow===0||dow===6?" we":""}">${x}<small>${["อา","จ","อ","พ","พฤ","ศ","ส"][dow]}</small>${ev[x]?`<span class="ev" title="${esc(ev[x])}">${esc(ev[x])}</span>`:""}</div>`; }).join("");
   const maxN=Math.max(1,...Object.values(tot).map(t=>t.n));
   h+=`<div class="totl">โพสต์/วัน<br>reach/วัน<br><span style="font-size:9px">แถบ = แนะนำ</span></div>`+TL_DAYS.map(x=>{ const t=tot[x]||{n:0,r:0}; const w=TL_W[x]||1; return `<div class="tot${t.n?(w>=4&&t.n<2?" lo":t.n>=4?" hi":""):" lo"}" title="แนะนำความเข้ม ${w}/5">${t.n||"–"}<small>${t.r?fmtN(t.r):""}</small><span class="rec"><i style="width:${w*20}%"></i></span></div>`; }).join("");
@@ -266,17 +269,25 @@ function renderSched(all){ const el=$("#sc"); if(!el||$("#tabs .tab.active").dat
       TL_DAYS.forEach(x=>{ const dow=new Date(2026,10,x).getDay(); const inPh=ph.length?ph.includes(String(tlPhase(x))):false; const has=ds.includes(x);
         const sug=!ds.length&&(SUG[rid(d)]||[]).includes(x);
         h+=`<div class="cell${dow===0||dow===6?" we":""}${inPh&&!has?" rec":""}" data-k="${esc(d.key)}" data-d="${x}" style="--ph:${c}">${has?`<div class="post" draggable="true" data-k="${esc(d.key)}" data-d="${x}" title="${esc(d.name)} · ${x} พ.ย. — กดเพื่อดู/แก้แนวคอนเทนต์" style="--ph:${c}">${src?`<img src="${src}" alt="">`:""}<span class="st st-${postOf(d,x).status}"></span></div>`:sug?`<div class="post sug" data-sug="1" title="MIDI แนะนำ ${x} พ.ย. — กดเพื่อยืนยัน หรือลากรูปไปวันอื่น" style="--ph:${c}">${src?`<img src="${src}" alt="">`:""}</div>`:""}</div>`; }); }); });
+  // Nano Week: แถวโพสต์ที่ 2 ของ Nano 15 คน — วางได้เฉพาะ 13–19
+  if(NWP.pick.length||NWP.short){ const c=NW.c; h+=`<div class="grp nw" style="--ph:${c}">✦ ${NW.title} · โพสต์ที่ 2 ของ Nano · ${NW_DAYS[0]}–${NW_DAYS[NW_DAYS.length-1]} พ.ย. (7 วันก่อนงาน) · ${NWP.pick.length}/${NW.n} คน${NWP.short?` · ขาด ${NWP.short} คน`:""}</div>`;
+    NWP.pick.forEach(d=>{ const nd=nanoDatesOf(d), ds=datesOf(d), src=avSrc(d), a=NWP.angle[d.key];
+      h+=`<div class="who nw${SC_SEL==="n:"+d.key?" sel":""}" draggable="true" data-k="${esc(d.key)}" data-n="1" title="ลากไปวางวันที่ 13–19 หรือแตะเพื่อเลือก">${src?`<div class="av"><img src="${src}" alt=""></div>`:`<div class="av av-txt">${iniOf(d)}</div>`}<div style="min-width:0"><div class="nm">${esc(d.name)}</div><div class="f">${fmtN(d.f)} · ${esc(a?a.t:"")}</div></div><span class="n">${nd.length?"โพสต์ 2":""}</span></div>`;
+      TL_DAYS.forEach(x=>{ const dow=new Date(2026,10,x).getDay(); const inW=x>=NW.from&&x<=NW.to; const has=nd.includes(x); const sug=!nd.length&&NWP.sug[d.key]===x; const first=ds.includes(x);
+        h+=`<div class="cell nwc${dow===0||dow===6?" we":""}${inW?(has?"":" rec"):" off"}" data-k="${esc(d.key)}" data-d="${x}" data-n="1" style="--ph:${c}">${has?`<div class="post nw" draggable="true" data-k="${esc(d.key)}" data-d="${x}" data-n="1" title="${esc(d.name)} · ${x} พ.ย. · Nano Week — กดเพื่อดู/แก้แนวคอนเทนต์" style="--ph:${c}">${src?`<img src="${src}" alt="">`:""}<span class="st st-${nPostOf(d,x).status}"></span></div>`:sug?`<div class="post sug nw" data-sug="1" title="MIDI แนะนำ ${x} พ.ย. — กดเพื่อยืนยัน" style="--ph:${c}">${src?`<img src="${src}" alt="">`:""}</div>`:first?`<span class="p1" title="โพสต์แรก ${x} พ.ย.">1</span>`:""}</div>`; }); });
+    for(let i=0;i<NWP.short;i++){ h+=`<div class="who nw empty"><div class="av av-txt">+</div><div style="min-width:0"><div class="nm">รอเติม Nano</div><div class="f">ต่ำกว่า 10K</div></div></div>`+TL_DAYS.map(x=>`<div class="cell nwc${x>=NW.from&&x<=NW.to?"":" off"}"></div>`).join(""); } }
   el.innerHTML=h;
-  const withDates=all.filter(d=>datesOf(d).length).length, posts=Object.values(tot).reduce((s,t)=>s+t.n,0);
-  $("#sc-sum").textContent=`กำหนดวันแล้ว ${withDates}/${all.length} คน · รวม ${posts} โพสต์ · รูปจาง ๆ เส้นประ = วันที่ MIDI แนะนำ (กดเพื่อยืนยัน หรือลากไปวันอื่น) · ขีดสีใต้ช่อง = วันในระยะของคนนั้น`;
+  const withDates=all.filter(d=>datesOf(d).length).length, posts=Object.values(tot).reduce((s,t)=>s+t.n,0), nposts=NWP.pick.filter(d=>nanoDatesOf(d).length).length;
+  $("#sc-sum").textContent=`กำหนดวันแล้ว ${withDates}/${all.length} คน · รวม ${posts} โพสต์ (Nano Week ${nposts}/${NWP.pick.length}) · รูปจาง ๆ เส้นประ = วันที่ MIDI แนะนำ (กดเพื่อยืนยัน หรือลากไปวันอื่น) · ขีดสีใต้ช่อง = วันในระยะของคนนั้น`;
   // drag & drop
   let drag=null;
-  el.querySelectorAll(".who,.post").forEach(n=>{ n.addEventListener("dragstart",e=>{ drag={k:n.dataset.k,from:n.dataset.d?+n.dataset.d:null}; e.dataTransfer.effectAllowed="move"; try{ e.dataTransfer.setData("text/plain",n.dataset.k); }catch(_){} n.classList.add("ghost"); }); n.addEventListener("dragend",()=>n.classList.remove("ghost")); });
-  el.querySelectorAll(".cell").forEach(c=>{ c.addEventListener("dragover",e=>{ if(drag&&drag.k===c.dataset.k){ e.preventDefault(); c.classList.add("over"); } }); c.addEventListener("dragleave",()=>c.classList.remove("over"));
-    c.addEventListener("drop",e=>{ e.preventDefault(); c.classList.remove("over"); if(!drag||drag.k!==c.dataset.k) return; const d=data.find(x=>x.key===c.dataset.k); const day=+c.dataset.d; let ds=datesOf(d); if(drag.from!=null) ds=ds.filter(x=>x!==drag.from); if(!ds.includes(day)) ds.push(day); setDates(d,ds); drag=null; });
-    c.addEventListener("click",e=>{ const pst=e.target.closest(".post"); if(pst&&pst.dataset.sug){ const d=data.find(x=>x.key===c.dataset.k); setDates(d,datesOf(d).concat([+c.dataset.d])); return; } if(pst){ const d=data.find(x=>x.key===c.dataset.k); openPost(d,+c.dataset.d); return; } if(SC_SEL===c.dataset.k){ const d=data.find(x=>x.key===c.dataset.k); const ds=datesOf(d); if(!ds.includes(+c.dataset.d)){ ds.push(+c.dataset.d); setDates(d,ds); } } }); });
+  el.querySelectorAll(".who[data-k],.post[data-k]").forEach(n=>{ n.addEventListener("dragstart",e=>{ drag={k:n.dataset.k,from:n.dataset.d?+n.dataset.d:null,n:!!n.dataset.n}; e.dataTransfer.effectAllowed="move"; try{ e.dataTransfer.setData("text/plain",n.dataset.k); }catch(_){} n.classList.add("ghost"); }); n.addEventListener("dragend",()=>n.classList.remove("ghost")); });
+  el.querySelectorAll(".cell").forEach(c=>{ const okDrop=()=>drag&&drag.k===c.dataset.k&&drag.n===!!c.dataset.n&&(!c.dataset.n||!c.classList.contains("off"));
+    c.addEventListener("dragover",e=>{ if(okDrop()){ e.preventDefault(); c.classList.add("over"); } }); c.addEventListener("dragleave",()=>c.classList.remove("over"));
+    c.addEventListener("drop",e=>{ e.preventDefault(); c.classList.remove("over"); if(!okDrop()) return; const d=data.find(x=>x.key===c.dataset.k); const day=+c.dataset.d; if(drag.n){ setNanoDates(d,[day]); drag=null; return; } let ds=datesOf(d); if(drag.from!=null) ds=ds.filter(x=>x!==drag.from); if(!ds.includes(day)) ds.push(day); setDates(d,ds); drag=null; });
+    c.addEventListener("click",e=>{ if(!c.dataset.k) return; const pst=e.target.closest(".post"); if(c.dataset.n){ const d=data.find(x=>x.key===c.dataset.k); if(pst&&pst.dataset.sug){ setNanoDates(d,[+c.dataset.d]); return; } if(pst){ openPost(d,+c.dataset.d,true); return; } if(SC_SEL==="n:"+c.dataset.k&&!c.classList.contains("off")) setNanoDates(d,[+c.dataset.d]); return; } if(pst&&pst.dataset.sug){ const d=data.find(x=>x.key===c.dataset.k); setDates(d,datesOf(d).concat([+c.dataset.d])); return; } if(pst){ const d=data.find(x=>x.key===c.dataset.k); openPost(d,+c.dataset.d); return; } if(SC_SEL===c.dataset.k){ const d=data.find(x=>x.key===c.dataset.k); const ds=datesOf(d); if(!ds.includes(+c.dataset.d)){ ds.push(+c.dataset.d); setDates(d,ds); } } }); });
   renderPostList(all);
-  el.querySelectorAll(".who").forEach(w=>w.addEventListener("click",()=>{ SC_SEL=SC_SEL===w.dataset.k?null:w.dataset.k; el.querySelectorAll(".who").forEach(x=>x.classList.toggle("sel",x.dataset.k===SC_SEL)); if(SC_SEL) toast("แตะช่องวันเพื่อวาง "+(data.find(x=>x.key===SC_SEL)||{}).name); }));
+  el.querySelectorAll(".who[data-k]").forEach(w=>w.addEventListener("click",()=>{ const sk=(w.dataset.n?"n:":"")+w.dataset.k; SC_SEL=SC_SEL===sk?null:sk; el.querySelectorAll(".who[data-k]").forEach(x=>x.classList.toggle("sel",(x.dataset.n?"n:":"")+x.dataset.k===SC_SEL)); if(SC_SEL) toast("แตะช่องวันเพื่อวาง "+(data.find(x=>x.key===w.dataset.k)||{}).name+(w.dataset.n?" (Nano Week 13–19)":"")); }));
 }
 /* ===== แนวคอนเทนต์ที่ MIDI ร่างให้ต่อโพสต์ ===== */
 function briefFor(d,day){ const p=tlPhase(day), txt=d.name+" "+d.cat, f=d.f||0; const local=LOCAL_RE.test(txt), travel=/ท่องเที่ยว|เที่ยว|travel|ทริป/i.test(d.cat||d.group), food=/กิน|อาหาร|อร่อย|food|ร้าน/i.test(d.cat), cafe=/คาเฟ่|cafe/i.test(d.cat), hotel=/ที่พัก|โรงแรม|hotel/i.test(d.cat), comm=/คอมมูนิตี้|community/i.test(d.cat), street=/แฟชั่น|fashion|สตรีท|street|เต้น|dance|ศิลปะ|art/i.test(txt);
@@ -300,26 +311,26 @@ function briefFor(d,day){ const p=tlPhase(day), txt=d.name+" "+d.cat, f=d.f||0; 
   return {format:fmt,brief:b+"\n"+cta+"\n"+HASHTAGS}; }
 const postKey=(d,day)=>rid(d)+"_"+day;
 const postOf=(d,day)=>{ const p=POSTS[postKey(d,day)]; if(p&&(p.brief||p.format)) return Object.assign({sug:false},p); const b=briefFor(d,day); return {format:b.format,brief:b.brief,status:"plan",link:"",sug:true}; };
-function openPost(d,day){ const p=postOf(d,day), ph=tlPhase(day), c=PHASES[ph-1].c, dow=["อา","จ","อ","พ","พฤ","ศ","ส"][new Date(2026,10,day).getDay()];
-  $("#pcard").innerHTML=`<button class="kc-x" type="button" id="pc-x" aria-label="ปิด">×</button><div class="pc-top" style="--ph:${c}">${avatarEl(d)}<div><h3>${esc(d.name)}</h3><div class="d">${fmtN(d.f)} · ${esc(d.cat||"—")}<br>ระยะ ${ph} · ${esc(PHASES[ph-1].title)}</div></div><div class="day"><b>${day}</b><small>พ.ย. · ${dow}</small></div></div>
+function openPost(d,day,isN){ const p=isN?nPostOf(d,day):postOf(d,day), ph=tlPhase(day), c=isN?NW.c:PHASES[ph-1].c, dow=["อา","จ","อ","พ","พฤ","ศ","ส"][new Date(2026,10,day).getDay()];
+  $("#pcard").innerHTML=`<button class="kc-x" type="button" id="pc-x" aria-label="ปิด">×</button><div class="pc-top" style="--ph:${c}">${avatarEl(d)}<div><h3>${esc(d.name)}</h3><div class="d">${fmtN(d.f)} · ${esc(d.cat||"—")}<br>${isN?`✦ ${NW.title} · โพสต์ที่ 2 (ซ้อนในระยะ 2)`:`ระยะ ${ph} · ${esc(PHASES[ph-1].title)}`}</div></div><div class="day"><b>${day}</b><small>พ.ย. · ${dow}</small></div></div>
   <div class="pc-bd"><div class="pc-row"><label>รูปแบบ</label><select id="pc-fmt">${FORMATS.map(f=>`<option${f===p.format?" selected":""}>${esc(f)}</option>`).join("")}</select></div>
   <div class="pc-row"><label>แนวคอนเทนต์</label><div><textarea id="pc-brief">${esc(p.brief)}</textarea><div class="pc-hint">${p.sug?`<b>MIDI ร่างให้</b> ตามระยะ/สายของช่อง — แก้ได้เลย`:`แก้ล่าสุดโดย ${esc(p.by||"-")}`} · กด "ใช้ร่างของ MIDI" เพื่อคืนค่าเริ่มต้น</div></div></div>
   <div class="pc-row"><label>สถานะ</label><select id="pc-st">${STATUS.map(([k,l])=>`<option value="${k}"${k===p.status?" selected":""}>${l}</option>`).join("")}</select></div>
   <div class="pc-row"><label>ลิงก์โพสต์</label><input id="pc-link" type="url" placeholder="วางลิงก์เมื่อโพสต์แล้ว" value="${esc(p.link||"")}"></div>
   <div class="pc-acts"><div class="r"><button class="btn danger" type="button" id="pc-del">เอาออกจากวันนี้</button><button class="btn" type="button" id="pc-reset">ใช้ร่างของ MIDI</button></div><div class="r"><button class="btn" type="button" id="pc-cancel">ยกเลิก</button><button class="btn primary" type="button" id="pc-save">บันทึก</button></div></div></div>`;
   $("#pmodal").hidden=false; const close=()=>{ $("#pmodal").hidden=true; }; $("#pc-x").onclick=close; $("#pc-cancel").onclick=close;
-  $("#pc-reset").onclick=()=>{ const b=briefFor(d,day); $("#pc-brief").value=b.brief; $("#pc-fmt").value=b.format; };
-  $("#pc-del").onclick=()=>{ close(); setDates(d,datesOf(d).filter(x=>x!==day)); };
-  $("#pc-save").onclick=()=>{ if(!reviewer){ askName(()=>$("#pc-save").click()); return; } const rec={key:postKey(d,day),kol:rid(d),name:d.name,day,format:$("#pc-fmt").value,brief:$("#pc-brief").value.trim(),status:$("#pc-st").value,link:$("#pc-link").value.trim(),by:reviewer}; const prev=POSTS[rec.key]; POSTS[rec.key]=rec; close(); render(); logEv("post",d.name+" "+day);
-    api("setPost",[rec]).then(()=>toast(`บันทึกแนวคอนเทนต์ ${d.name} · ${day} พ.ย.`)).catch(err=>{ if(prev) POSTS[rec.key]=prev; else delete POSTS[rec.key]; render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); }; logEv("post-open",d.name+" "+day); }
+  $("#pc-reset").onclick=()=>{ const b=isN?nanoBriefFor(d,day):briefFor(d,day); $("#pc-brief").value=b.brief; $("#pc-fmt").value=b.format; };
+  $("#pc-del").onclick=()=>{ close(); if(isN) setNanoDates(d,nanoDatesOf(d).filter(x=>x!==day)); else setDates(d,datesOf(d).filter(x=>x!==day)); };
+  $("#pc-save").onclick=()=>{ if(!reviewer){ askName(()=>$("#pc-save").click()); return; } const rec={key:isN?nPostKey(d,day):postKey(d,day),kol:rid(d),name:d.name,day,format:$("#pc-fmt").value,brief:$("#pc-brief").value.trim(),status:$("#pc-st").value,link:$("#pc-link").value.trim(),by:reviewer}; const prev=POSTS[rec.key]; POSTS[rec.key]=rec; close(); render(); logEv("post",d.name+" "+(isN?"n":"")+day);
+    api("setPost",[rec]).then(()=>toast(`บันทึกแนวคอนเทนต์ ${d.name} · ${day} พ.ย.${isN?" (Nano Week)":""}`)).catch(err=>{ if(prev) POSTS[rec.key]=prev; else delete POSTS[rec.key]; render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); }; logEv("post-open",d.name+" "+day); }
 $("#pmodal").addEventListener("click",e=>{ if(e.target.id==="pmodal") $("#pmodal").hidden=true; });
-function renderPostList(all){ const el=$("#plist"); if(!el) return; const items=[]; all.forEach(d=>datesOf(d).forEach(day=>items.push({d,day,p:postOf(d,day)}))); items.sort((a,b)=>a.day-b.day||(b.d.f||0)-(a.d.f||0));
+function renderPostList(all){ const el=$("#plist"); if(!el) return; const items=[]; all.forEach(d=>{ datesOf(d).forEach(day=>items.push({d,day,p:postOf(d,day)})); nanoDatesOf(d).forEach(day=>items.push({d,day,p:nPostOf(d,day),n:true})); }); items.sort((a,b)=>a.day-b.day||(b.d.f||0)-(a.d.f||0));
   if(!items.length){ el.innerHTML=`<div class="empty">ยังไม่มีโพสต์ในตาราง — กดรูปจาง ๆ ที่ MIDI แนะนำ หรือ "ใช้วันที่ MIDI วางไว้"</div>`; return; }
-  let last=0; el.innerHTML=items.map(({d,day,p})=>{ const ph=tlPhase(day), c=PHASES[ph-1].c; const head=last!==ph?`<div class="gh">ระยะ ${ph} · ${esc(PHASES[ph-1].title)} · ${esc(PHASES[ph-1].d.split(" ·")[0])}</div>`:""; last=ph; const st=STATUS.find(x=>x[0]===p.status)||STATUS[0];
-    return head+`<div class="pl2" data-k="${esc(d.key)}" data-d="${day}" style="--ph:${c}"><div class="dy">${day}<small>พ.ย.</small></div>${avatarEl(d)}<div style="min-width:0"><div class="nm">${esc(d.name)}</div><div class="fm">${esc(p.format)}</div></div><div class="br${p.sug?" sug":""}">${esc(p.brief.split("\n")[0])}</div><div class="stt st-${p.status}">${st[1]}</div></div>`; }).join("");
-  el.querySelectorAll(".pl2").forEach(r=>r.onclick=()=>{ const d=data.find(x=>x.key===r.dataset.k); if(d) openPost(d,+r.dataset.d); }); }
-function setDates(d,ds){ if(!reviewer){ askName(()=>setDates(d,ds)); return; } ds=[...new Set(ds)].sort((a,b)=>a-b); const id=rid(d); const prev=reviews[id]; reviews[id]=Object.assign({},prev,{dates:ds.join(",")}); render(); logEv("dates",d.name+" → "+(ds.join(",")||"-"));
-  api("setDates",[{key:id,name:d.name,dates:ds.join(","),by:reviewer}]).then(()=>toast(`${d.name}: ${ds.length?ds.map(x=>x+" พ.ย.").join(", "):"ไม่มีวัน"}`)).catch(err=>{ reviews[id]=prev; render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); }
+  let last=0; el.innerHTML=items.map(({d,day,p,n})=>{ const ph=tlPhase(day), c=n?NW.c:PHASES[ph-1].c; const head=last!==ph?`<div class="gh">ระยะ ${ph} · ${esc(PHASES[ph-1].title)} · ${esc(PHASES[ph-1].d.split(" ·")[0])}</div>`:""; last=ph; const st=STATUS.find(x=>x[0]===p.status)||STATUS[0];
+    return head+`<div class="pl2${n?" nw":""}" data-k="${esc(d.key)}" data-d="${day}"${n?` data-n="1"`:""} style="--ph:${c}"><div class="dy">${day}<small>พ.ย.</small></div>${avatarEl(d)}<div style="min-width:0"><div class="nm">${esc(d.name)}</div><div class="fm">${n?`<span class="nwb">✦ Nano Week · โพสต์ 2</span> `:""}${esc(p.format)}</div></div><div class="br${p.sug?" sug":""}">${esc(p.brief.split("\n")[0])}</div><div class="stt st-${p.status}">${st[1]}</div></div>`; }).join("");
+  el.querySelectorAll(".pl2").forEach(r=>r.onclick=()=>{ const d=data.find(x=>x.key===r.dataset.k); if(d) openPost(d,+r.dataset.d,!!r.dataset.n); }); }
+function setDates(d,ds){ if(!reviewer){ askName(()=>setDates(d,ds)); return; } ds=[...new Set(ds)].sort((a,b)=>a-b); const id=rid(d); const prev=reviews[id]; const s=rawDates(ds,nanoDatesOf(d)); reviews[id]=Object.assign({},prev,{dates:s}); render(); logEv("dates",d.name+" → "+(ds.join(",")||"-"));
+  api("setDates",[{key:id,name:d.name,dates:s,by:reviewer}]).then(()=>toast(`${d.name}: ${ds.length?ds.map(x=>x+" พ.ย.").join(", "):"ไม่มีวัน"}`)).catch(err=>{ reviews[id]=prev; render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); }
 /* MIDI วางวันให้: ใส่วันตามระยะ + ช่วงที่แนะนำ กระจายไม่ให้วันเดียวแน่น */
 function autoDates(all){ const load={}; all.forEach(d=>datesOf(d).forEach(x=>load[x]=(load[x]||0)+1)); const out=[]; const AIP=aiPlan(all).pick;
   const pickDay=(days)=>{ let best=days[0], bl=Infinity; days.forEach(x=>{ const l=(load[x]||0)-(TL_W[x]||1)*0.5; if(l<bl){ bl=l; best=x; } }); load[best]=(load[best]||0)+1; return best; };
@@ -328,14 +339,68 @@ function autoDates(all){ const load={}; all.forEach(d=>datesOf(d).forEach(x=>loa
     if(ph.includes("2")) ds.push(pickDay([15,16,17,18,19,13,14,12]));
     if(ph.includes("3")) ds.push(d.artist||f>=3e5?pickDay([27,28,29]):/แฟชั่น|fashion|สตรีท|street|เต้น|dance|ศิลปะ|art/i.test(txt)?pickDay([20,21,22]):pickDay([23,24,25,26,21,22]));
     if(!ph.length) ds.push(pickDay([15,16,17,18,19,20,21,22]));
-    out.push({key:rid(d),name:d.name,dates:[...new Set(ds)].sort((a,b)=>a-b).join(","),by:reviewer}); });
+    out.push({key:rid(d),name:d.name,dates:rawDates([...new Set(ds)],nanoDatesOf(d)),by:reviewer}); });
   return out; }
-function snapshot(label){ const snap={}; data.forEach(d=>{ const ds=datesOf(d); if(ds.length) snap[rid(d)]={name:d.name,dates:ds.join(",")}; }); if(!Object.keys(snap).length) return Promise.resolve(); return api("snapshotDates",[{by:reviewer,label,snap}]).catch(()=>{}); }
+/* ===== Nano Week: Nano 15 คน โพสต์ที่ 2 ช่วง 7 วันก่อนงาน (13–19 พ.ย.) แนวใหม่ไม่ซ้ำโพสต์แรก =====
+   เก็บในคอลัมน์วันโพสต์เดิมเป็น "n16" (หน้าเก่า/หลังบ้านไม่ต้องแก้ — datesOf อ่านเฉพาะตัวเลข) · แนวคอนเทนต์ key = rid_n16 */
+const NW_DAYS=TL_DAYS.filter(x=>x>=NW.from&&x<=NW.to);
+const NW_W={13:2,14:3,15:3,16:2,17:2,18:3,19:3};
+const nanoDatesOf=d=>{ const r=reviews[rid(d)]; return String(r&&r.dates||"").split(",").map(s=>s.trim()).filter(s=>/^n\d+$/.test(s)).map(s=>+s.slice(1)).filter(n=>n>=NW.from&&n<=NW.to); };
+const rawDates=(main,nano)=>[...new Set(main)].sort((a,b)=>a-b).map(String).concat([...new Set(nano||[])].sort((a,b)=>a-b).map(x=>"n"+x)).join(",");
+const NW_ANGLES=[
+  {k:"friends",t:"นัดแก๊งเพื่อน",fmt:FORMATS[0],b:()=>`คลิป "นัดแก๊งไปโคราช" แท็กเพื่อน 3 คน โหวตกันว่าไปเสาร์ 21 หรือ 28 พ.ย. + บอก 1 อย่างที่ต้องทำด้วยกันในงาน`},
+  {k:"outfit",t:"แต่งตัวไปงาน",fmt:FORMATS[0],b:()=>`"ลุคไป K-Street" แต่งตัว 1 ลุค + ของที่ควรพก (รองเท้าเดินสบาย พาวเวอร์แบงก์ QR จ่ายเงิน) คอนเซปต์ "กินของใหม่ ใส่ของเท่"`},
+  {k:"shortcut",t:"ทางลัดคนโคราช",fmt:FORMATS[0],b:()=>`คนโคราชบอกต่อ 3 ข้อที่คนต่างถิ่นไม่รู้: จอดรถตรงไหน เดินเข้างานทางไหน ช่วงเวลาไหนคนน้อย`},
+  {k:"eat",t:"กินก่อนเข้างาน",fmt:FORMATS[0],b:()=>`ร้านเด็ดใกล้จุดจัดงาน 2 ร้าน "กินก่อน/หลังเข้างาน" เมนูเด็ดร้านละ 1 อย่าง + เวลาเปิดปิด`},
+  {k:"sneak",t:"แอบส่องก่อนงาน",fmt:FORMATS[4],b:day=>`ไปส่องพื้นที่จริงก่อนงาน เห็นเวที/ป้าย/บูธกำลังตั้ง "อีก ${Math.max(1,20-day)} วันเปิดเมือง" เล่าแบบเรียลไทม์`},
+  {k:"qa",t:"ตอบคำถามที่คนถามบ่อย",fmt:FORMATS[0],b:()=>`ตอบ 5 คำถามจากคอมเมนต์จริง: งานกี่โมง · เข้าฟรีไหม · ไปยังไง · พาเด็ก/ผู้สูงอายุได้ไหม · ฝนตกทำไง`},
+  {k:"budget",t:"เที่ยวงานงบ 500",fmt:FORMATS[3],b:()=>`แผน 1 วันในงาน งบ 500 บาท: กินอะไร ซื้ออะไร เช็กอินจุดไหน — สรุปเป็นแคโรเซลให้คนกดเซฟ`},
+  {k:"reward",t:"สอนรับสิทธิ์ LINE",fmt:FORMATS[0],b:()=>`สอนสมัคร LINE OA อวดเมือง City Expo ใน 30 วิ + เช็กอิน 7 จุดสะสมรับ Korat City Reward "สมัครไว้ก่อนวันงาน"`}];
+/* แนวที่ใกล้กับโพสต์แรกของคนนั้น → ห้ามใช้ซ้ำ (อิงร่างใน briefFor) */
+function nwAvoid(d){ const s=new Set(), txt=d.name+" "+d.cat; const local=LOCAL_RE.test(txt), travel=/ท่องเที่ยว|เที่ยว|travel|ทริป/i.test(d.cat||d.group), food=/กิน|อาหาร|อร่อย|food|ร้าน/i.test(d.cat), cafe=/คาเฟ่|cafe/i.test(d.cat), hotel=/ที่พัก|โรงแรม|hotel/i.test(d.cat), comm=/คอมมูนิตี้|community/i.test(d.cat), street=/แฟชั่น|fashion|สตรีท|street|เต้น|dance|ศิลปะ|art/i.test(txt);
+  datesOf(d).forEach(day=>{ const p=tlPhase(day);
+    if(p===1){ if(!local&&(travel||cafe)) s.add("friends"); }
+    else if(p===2){ if(travel) ["budget","shortcut"].forEach(k=>s.add(k)); else if(hotel) s.add("shortcut"); else if(cafe) ["eat","friends"].forEach(k=>s.add(k)); else if(comm) s.add("reward"); else if(food) s.add("eat"); else s.add("shortcut"); }
+    else { if(day<=22){ if(street) s.add("outfit"); else s.add("eat"); } else if(day<=26){ s.add("reward"); if(local||food) s.add("eat"); } else s.add("reward"); } });
+  return s; }
+function nwFit(d,k){ const t=d.name+" "+d.cat; const m={eat:/กิน|อาหาร|อร่อย|food|ร้าน|restaurant/i,budget:/เที่ยว|travel|ช๊อป|ช้อป/i,friends:/เที่ยว|travel|คาเฟ่|cafe/i,outfit:/lifestyle|beauty|แฟชั่น|fashion/i,shortcut:/โคราช|korat|เมืองย่า/i,sneak:/โคราช|korat|เมืองย่า/i,qa:/รีวิว|review/i,reward:/lifestyle|รีวิว/i}; return m[k]&&m[k].test(t)?2:0; }
+function nanoPlan(all){ const elig=all.filter(d=>d.tier==="nano"&&!d.artist);
+  const pr=d=>(nanoDatesOf(d).length?4:0)+(torTier(d)==="nano"?2:0)+(LOCAL_RE.test(d.name+" "+d.cat)?1:0);
+  const pick=[...elig].sort((a,b)=>pr(b)-pr(a)||(b.f||0)-(a.f||0)).slice(0,NW.n).sort((a,b)=>(b.f||0)-(a.f||0));
+  const use={}, angle={}, cap=Math.ceil(NW.n/NW_ANGLES.length);
+  pick.forEach(d=>{ const av=nwAvoid(d); const ok=NW_ANGLES.filter(a=>!av.has(a.k)); const pool=(ok.filter(a=>(use[a.k]||0)<cap).length?ok.filter(a=>(use[a.k]||0)<cap):ok.length?ok:NW_ANGLES);
+    const a=[...pool].sort((x,y)=>(use[x.k]||0)-(use[y.k]||0)||nwFit(d,y.k)-nwFit(d,x.k))[0]; use[a.k]=(use[a.k]||0)+1; angle[d.key]=a; });
+  const load={}; all.forEach(d=>{ datesOf(d).forEach(x=>load[x]=(load[x]||0)+1); nanoDatesOf(d).forEach(x=>load[x]=(load[x]||0)+1); });
+  const sug={}; pick.filter(d=>!nanoDatesOf(d).length).forEach(d=>{ const own=datesOf(d); let best=null, bl=Infinity; NW_DAYS.filter(x=>!own.includes(x)).forEach(x=>{ const l=(load[x]||0)-NW_W[x]*1.2; if(l<bl){ bl=l; best=x; } }); if(best){ sug[d.key]=best; load[best]=(load[best]||0)+1; } });
+  return {pick,angle,sug,short:Math.max(0,NW.n-pick.length),elig:elig.length,reach:pick.reduce((s,d)=>s+(d.f||0),0)}; }
+let NWP={pick:[],angle:{},sug:{},short:NW.n,elig:0,reach:0};
+function nanoBriefFor(d,day){ const a=NWP.angle[d.key]||NW_ANGLES[0]; const first=datesOf(d);
+  const was=first.length?`ต่างจากโพสต์แรก (${first.map(x=>x+" พ.ย.").join(", ")}: ${first.map(x=>postOf(d,x).brief.split("\n")[0].slice(0,48)).join(" / ")}…)`:"โพสต์แรกยังไม่ได้กำหนดวัน — วางในตารางด้านบนด้วย";
+  return {format:a.fmt,brief:`[Nano Week · ${a.t}] ${a.b(day)}\nปิดท้าย: เปิดงาน 20 พ.ย. อีก ${Math.max(1,20-day)} วัน + ชี้ไป LINE OA อวดเมือง City Expo รับสิทธิ์ + ลิงก์/QR ของตัวเอง\n${HASHTAGS}\n— ${was}`}; }
+const nPostKey=(d,day)=>rid(d)+"_n"+day;
+const nPostOf=(d,day)=>{ const p=POSTS[nPostKey(d,day)]; if(p&&(p.brief||p.format)) return Object.assign({sug:false},p); const b=nanoBriefFor(d,day); return {format:b.format,brief:b.brief,status:"plan",link:"",sug:true}; };
+function setNanoDates(d,nds){ if(!reviewer){ askName(()=>setNanoDates(d,nds)); return; } nds=[...new Set(nds)].filter(x=>x>=NW.from&&x<=NW.to); const id=rid(d); const prev=reviews[id]; const s=rawDates(datesOf(d),nds); reviews[id]=Object.assign({},prev,{dates:s}); render(); logEv("nano-dates",d.name+" → "+(nds.join(",")||"-"));
+  api("setDates",[{key:id,name:d.name,dates:s,by:reviewer}]).then(()=>toast(`${d.name}: Nano Week ${nds.length?nds.map(x=>x+" พ.ย.").join(", "):"— เอาออกแล้ว"}`)).catch(err=>{ reviews[id]=prev; render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); }
+function renderNanoWeek(all){ const el=$("#nwk"); if(!el) return; const P=NWP;
+  const posts=P.pick.filter(d=>nanoDatesOf(d).length).length;
+  const cnt={}; P.pick.forEach(d=>{ const a=P.angle[d.key]; if(a) cnt[a.k]=(cnt[a.k]||0)+1; });
+  const cards=P.pick.map(d=>{ const a=P.angle[d.key]; const nd=nanoDatesOf(d); const day=nd[0]||P.sug[d.key]; const first=datesOf(d); const src=avSrc(d);
+    return `<div class="nw-c" data-k="${esc(d.key)}">${src?`<img src="${src}" alt="">`:`<span class="f">${iniOf(d)}</span>`}<div><b>${esc(d.name)} <span class="sub">${fmtN(d.f)}</span></b><span class="p1">โพสต์ 1: ${first.length?first.map(x=>`${x} พ.ย. · ระยะ ${tlPhase(x)}`).join(", "):"ยังไม่กำหนดวัน"}</span><span class="p2">โพสต์ 2: ${day?`${day} พ.ย.`:"—"}${nd.length?"":" <i>(แนะนำ)</i>"} · ${esc(a?a.t:"")}</span></div></div>`; }).join("")+Array.from({length:P.short},()=>`<div class="nw-c empty"><span class="f">+</span><div><b>รอเติม Nano</b><span class="p1">ผู้ติดตามต่ำกว่า 10K</span></div></div>`).join("");
+  el.innerHTML=`<div class="nw-top"><div><div class="num">ช่วงพิเศษ · ซ้อนในระยะที่ 2</div><h3>${NW.title} — Nano ${NW.n} คน โพสต์ครั้งที่ 2</h3><div class="d">${NW.d} · ทุกคนได้ 2 งาน: โพสต์แรกตามแผน 3 ระยะ + โพสต์ที่ 2 ในช่วงนี้ แนวคอนเทนต์ใหม่ ไม่ซ้ำโพสต์แรก และไม่ซ้ำกันเองเกิน ${Math.ceil(NW.n/NW_ANGLES.length)} คนต่อแนว</div></div>
+    <div class="kpi"><div><b>${P.pick.length}<small>/${NW.n}</small></b>Nano</div><div><b>${posts}<small>/${P.pick.length}</small></b>วางวันแล้ว</div><div><b>+${P.pick.length}</b>โพสต์เพิ่ม</div><div><b>${fmtN(P.reach)}</b>reach เพิ่ม</div></div></div>
+    ${P.short?`<div class="nw-warn">⚠ ตอนนี้มี Nano (ต่ำกว่า 10K) ในทีม ${P.elig} คน — ขาดอีก ${P.short} คนให้ครบ ${NW.n} · เพิ่มได้ที่ "+ เพิ่ม KOL ใหม่"</div>`:""}
+    <div class="nw-why"><span><b>ทำไม Nano ช่วงนี้</b> คนกำลังตัดสินใจ "ไปไหม" — Nano คือเสียงเพื่อนในพื้นที่ คนเชื่อมากกว่าโฆษณา</span><span><b>ทำไมโพสต์ซ้ำ</b> ผู้ติดตามชุดเดิมเห็นงานเป็นครั้งที่ 2 ก่อนวันงาน ครบความถี่ ≥3 ครั้งเมื่อรวมกับ KOL อื่น</span><span><b>ทำไมแนวใหม่</b> โพสต์ที่ 2 ตอบข้อสงสัยที่เหลือ: ไปกับใคร ใส่อะไร จอดตรงไหน กินอะไร ได้สิทธิ์อะไร</span></div>
+    <div class="nw-angles">${NW_ANGLES.map(a=>`<span class="${cnt[a.k]?"on":""}">${esc(a.t)} <b>${cnt[a.k]||0}</b></span>`).join("")}</div>
+    <div class="nw-grid">${cards}</div>`;
+  el.querySelectorAll(".nw-c[data-k]").forEach(c=>c.onclick=()=>{ const d=data.find(x=>x.key===c.dataset.k); if(!d) return; const nd=nanoDatesOf(d); if(nd.length) openPost(d,nd[0],true); else openCard(d); }); }
+function snapshot(label){ const snap={}; data.forEach(d=>{ const r=reviews[rid(d)]; const ds=String(r&&r.dates||""); if(ds) snap[rid(d)]={name:d.name,dates:ds}; }); if(!Object.keys(snap).length) return Promise.resolve(); return api("snapshotDates",[{by:reviewer,label,snap}]).catch(()=>{}); }
 $("#sc-undo").onclick=()=>{ $("#umodal").hidden=false; $("#ulist").textContent="กำลังโหลด…"; api("listSnapshots",[]).then(list=>{ if(!list||!list.length){ $("#ulist").textContent="ยังไม่มีสำเนา — ระบบจะเก็บให้เองเมื่อกดล้างหรือใช้วันที่ MIDI วางไว้"; return; }
     $("#ulist").innerHTML=list.map(x=>`<button type="button" data-id="${esc(x.id)}"><span>${esc(x.label||"สำเนา")} · ${x.n} คน</span><small>${new Date(x.at).toLocaleString("th-TH",{dateStyle:"short",timeStyle:"short"})} · ${esc(x.by||"")}</small></button>`).join("");
     $("#ulist").querySelectorAll("button").forEach(b=>b.onclick=()=>{ if(!reviewer){ askName(()=>b.click()); return; } $("#umodal").hidden=true; prog.manual=true; progStart(); api("restoreSnapshot",[{id:b.dataset.id,by:reviewer}]).then(()=>{ toast("กู้คืนแล้ว"); load(); }).catch(err=>{ progDone(); toast("กู้คืนไม่สำเร็จ: "+(err&&err.message||err)); }); }); }).catch(err=>{ $("#ulist").textContent="โหลดไม่สำเร็จ: "+(err&&err.message||err); }); };
 $("#u-cancel").onclick=()=>{ $("#umodal").hidden=true; }; $("#umodal").addEventListener("click",e=>{ if(e.target.id==="umodal") $("#umodal").hidden=true; });
-$("#sc-auto").onclick=async()=>{ if(!reviewer){ askName(()=>$("#sc-auto").onclick()); return; } const list=autoDates(teamList([...data].sort((a,b)=>(b.f||0)-(a.f||0))).all); if(!list.length){ toast("ทุกคนมีวันแล้ว"); return; } await snapshot("ก่อนใช้วันที่ MIDI วางไว้"); const prev={}; list.forEach(r=>{ prev[r.key]=reviews[r.key]; reviews[r.key]=Object.assign({},reviews[r.key],{dates:r.dates}); }); render(); logEv("auto-dates",list.length);
+$("#sc-auto").onclick=async()=>{ if(!reviewer){ askName(()=>$("#sc-auto").onclick()); return; } const all=teamList([...data].sort((a,b)=>(b.f||0)-(a.f||0))).all; const list=autoDates(all); const NP=nanoPlan(all);
+  Object.keys(NP.sug).forEach(k=>{ const d=all.find(x=>x.key===k); if(!d) return; const id=rid(d); const r=list.find(x=>x.key===id); if(r){ const m=r.dates.split(",").filter(x=>/^\d+$/.test(x)).map(Number); r.dates=rawDates(m,[NP.sug[k]]); } else list.push({key:id,name:d.name,dates:rawDates(datesOf(d),[NP.sug[k]]),by:reviewer}); });
+  if(!list.length){ toast("ทุกคนมีวันแล้ว"); return; } await snapshot("ก่อนใช้วันที่ MIDI วางไว้"); const prev={}; list.forEach(r=>{ prev[r.key]=reviews[r.key]; reviews[r.key]=Object.assign({},reviews[r.key],{dates:r.dates}); }); render(); logEv("auto-dates",list.length);
   api("setDatesMany",[list]).then(()=>toast(`วางวันให้ ${list.length} คนแล้ว — ลากขยับได้เลย`)).catch(err=>{ Object.assign(reviews,prev); render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); };
 $("#sc-clear").onclick=async()=>{ if(!reviewer){ askName(()=>$("#sc-clear").onclick()); return; } if(!confirm("ล้างวันโพสต์ของทุกคน? (กู้คืนได้จากปุ่ม ↶ ย้อนกลับ)")) return; await snapshot("ก่อนล้างทั้งหมด"); const list=data.filter(d=>datesOf(d).length).map(d=>({key:rid(d),name:d.name,dates:"",by:reviewer})); list.forEach(r=>{ reviews[r.key]=Object.assign({},reviews[r.key],{dates:""}); }); render(); api("setDatesMany",[list]).then(()=>toast("ล้างแล้ว")).catch(()=>{ load(); }); };
 function openCard(d){ const R=reviews[rid(d)]||{}, rv=rvOf(d), ph=phasesOf(d), t=TIERS.find(x=>x.k===d.tier); const rank=[...data].sort((a,b)=>(b.f||0)-(a.f||0)).indexOf(d)+1; const hs=histLine(d);
