@@ -195,19 +195,14 @@ function aiPlan(passed){
   const order=[...passed].sort((a,b)=>(b.f||0)-(a.f||0));
   order.forEach(d=>{ const o=out.get(d.key); const ranked=[0,1,2].sort((i,j)=>o.sc[j]-o.sc[i]||sum[i]-sum[j]); let i=ranked[0];
     if(sum[i]+(d.f||0)>target[i]*1.25 && o.sc[ranked[1]]>=o.sc[i]-2){ i=ranked[1]; o.why[i].push("ย้ายมาระยะนี้เพื่อบาลานซ์ reach ระหว่างระยะ"); }
-    const ph=[String(i+1)]; const j=ranked.find(k=>k!==i&&o.sc[k]>=4&&o.sc[k]>=o.sc[i]-1); if(j!=null) ph.push(String(j+1));
-    if(ph.includes("3")){ const slot=d.artist||(d.f||0)>=3e5?"27–29 พ.ย. (เปิดงานทางการ / รอบชิง / Jennifer Kim)":/แฟชั่น|fashion|สตรีท|street|เต้น|dance|ศิลปะ|art/i.test(d.name+" "+d.cat)?"20–22 พ.ย. (K-Street & K-Sounder เปิดเมือง)":"23–26 พ.ย. (จุดกิจกรรม 7 จุดช่วงเย็น)"; o.why[2].push("ช่วงที่แนะนำ: "+slot); }
-    sum[i]+=(d.f||0); pick[d.key]={d,ph:ph.sort(),whyP:o.why,why:ph.map(p=>o.why[+p-1]).flat().filter((v,k,a)=>a.indexOf(v)===k)}; });
-  // ระยะ 1 ต้องผสม Micro ด้วย ไม่ใช่ศิลปินล้วน: เติมสายเที่ยว/ท้องถิ่น/คาเฟ่ ที่ยอด < 300K จนระยะ 1 มี ≈ 30% ของทีม
-  // ระยะ 2 คือสัปดาห์ตัดสินใจเดินทาง: อย่างน้อย 55% ของทีมต้องมีโพสต์ในระยะ 2
-  { const want2=Math.round(passed.length*0.55); const have2=()=>Object.values(pick).filter(x=>x.ph.includes("2")).length;
-    const c2=Object.values(pick).filter(x=>!x.ph.includes("2")).sort((a,b)=>out.get(b.d.key).sc[1]-out.get(a.d.key).sc[1]);
-    for(const x of c2){ if(have2()>=want2) break; x.ph.push("2"); x.ph.sort(); const w="อัดก่อนงาน — ช่วง 13–19 คือสัปดาห์ที่คนตัดสินใจเดินทาง ต้องเห็นซ้ำ ≥3 ครั้งก่อนลงมือ"; x.whyP[1].push(w); x.why.push(w); } }
-  { const want=Math.max(4,Math.round(passed.length*0.35)); const have=()=>Object.values(pick).filter(x=>x.ph.includes("1")).length;
-    const cand=Object.values(pick).filter(x=>!x.ph.includes("1")&&!x.d.artist&&(x.d.f||0)<3e5).sort((a,b)=>{ const s=x=>(/ท่องเที่ยว|เที่ยว|travel/i.test(x.d.cat)?2:0)+(LOCAL_RE.test(x.d.name+" "+x.d.cat)?2:0)+(/คาเฟ่|cafe/i.test(x.d.cat)?1:0)+Math.min(1,(x.d.f||0)/1e5); return s(b)-s(a); });
-    for(const x of cand){ if(have()>=want) break; x.ph.push("1"); x.ph.sort(); const w="Micro ร่วมเปิดตัว — นับถอยหลัง/ชวนเพื่อนมาโคราช กระจายการรับรู้ในกลุ่มสายเที่ยวและคนท้องถิ่น"; x.whyP[0].push(w); x.why.push(w); } }
-  // guarantee each phase has at least 3 people when possible
-  [0,1,2].forEach(i=>{ const have=Object.values(pick).filter(x=>x.ph.includes(String(i+1))).length; if(have<3&&passed.length>=9){ Object.values(pick).sort((a,b)=>out.get(b.d.key).sc[i]-out.get(a.d.key).sc[i]).filter(x=>!x.ph.includes(String(i+1))).slice(0,3-have).forEach(x=>{ x.ph.push(String(i+1)); x.ph.sort(); x.whyP[i].push("เพิ่มให้ระยะที่ "+(i+1)+" มีคนครบขั้นต่ำ"); x.why.push("เพิ่มให้ระยะที่ "+(i+1)+" มีคนครบขั้นต่ำ"); }); } });
+    sum[i]+=(d.f||0); pick[d.key]={d,ph:[String(i+1)],whyP:o.why,why:[]}; });
+  // 1 คน = 1 โพสต์ (ยกเว้น Nano Week) → เกลี่ยจำนวนคนให้ได้สัดส่วนโพสต์ ระยะ 1 ≈30% · ระยะ 2 ≈35% · ระหว่างงาน ≈35% (ก่อนงาน ≈65%)
+  { const rows=Object.values(pick), n=rows.length, want=[Math.round(n*0.30),Math.round(n*0.35),0]; want[2]=n-want[0]-want[1];
+    const cnt=k=>rows.filter(x=>x.ph[0]===String(k+1)).length;
+    const W=["Micro ร่วมเปิดตัว — นับถอยหลัง/ชวนเพื่อนมาโคราช กระจายการรับรู้ในกลุ่มสายเที่ยวและคนท้องถิ่น","อัดก่อนงาน — ช่วง 13–19 คือสัปดาห์ที่คนตัดสินใจเดินทาง ต้องเห็นซ้ำ ≥3 ครั้งก่อนลงมือ"];
+    [1,0].forEach(k=>{ while(cnt(k)<want[k]){ const c=rows.filter(x=>{ const cur=+x.ph[0]-1; return cur!==k&&cnt(cur)>want[cur]&&!x.d.artist; }).sort((a,b)=>{ const sa=out.get(a.d.key).sc, sb=out.get(b.d.key).sc; return (sb[k]-sb[+b.ph[0]-1])-(sa[k]-sa[+a.ph[0]-1])||(a.d.f||0)-(b.d.f||0); })[0]; if(!c) break; const from=+c.ph[0]; c.ph=[String(k+1)]; c.whyP[k].push(W[k]); sum[from-1]-=(c.d.f||0); sum[k]+=(c.d.f||0); } }); }
+  Object.values(pick).forEach(x=>{ const d=x.d; if(x.ph[0]==="3"){ const slot=d.artist||(d.f||0)>=3e5?"27–29 พ.ย. (เปิดงานทางการ / รอบชิง / Jennifer Kim)":/แฟชั่น|fashion|สตรีท|street|เต้น|dance|ศิลปะ|art/i.test(d.name+" "+d.cat)?"20–22 พ.ย. (K-Street & K-Sounder เปิดเมือง)":"23–26 พ.ย. (จุดกิจกรรม 7 จุดช่วงเย็น)"; x.whyP[2].push("ช่วงที่แนะนำ: "+slot); }
+    x.why=x.whyP[+x.ph[0]-1].filter((v,k,a)=>a.indexOf(v)===k); if(!x.why.length) x.why=["ทั่วไป — ใส่ระยะนี้เพื่อบาลานซ์จำนวนโพสต์"]; });
   return {pick,sum,total};
 }
 /* ===== timeline 6–29 พ.ย. จากแผน PR ===== */
@@ -247,7 +242,7 @@ function renderAI(passed){
 function applyAI(rows,onlyUnset){ if(!reviewer){ askName(()=>applyAI(rows,onlyUnset)); return; } const list=rows.filter(x=>!onlyUnset||!phasesOf(x.d).length).map(x=>({key:rid(x.d),name:x.d.name,phase:x.ph.join(","),by:reviewer}));
   if(!list.length){ toast("ไม่มีรายการให้จัด"); return; } const prev={}; list.forEach(r=>{ prev[r.key]=reviews[r.key]; reviews[r.key]=Object.assign({},reviews[r.key],{phase:r.phase}); }); render(); logEv("ai-apply",(onlyUnset?"unset ":"all ")+list.length);
   api("setPhases",[list]).then(()=>{ toast(`บันทึกแผน AI ให้ ${list.length} คนแล้ว`); PLAN_MODE="manual"; $("#plan-seg").querySelector('[data-m="manual"]').click(); }).catch(err=>{ Object.assign(reviews,prev); render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); }
-function togglePhase(d,p){ if(!reviewer){ askName(()=>togglePhase(d,p)); return; } const id=rid(d); const cur=phasesOf(d); const next=cur.includes(p)?cur.filter(x=>x!==p):cur.concat([p]).sort(); const prev=reviews[id];
+function togglePhase(d,p){ if(!reviewer){ askName(()=>togglePhase(d,p)); return; } const id=rid(d); const cur=phasesOf(d); const next=cur.includes(p)&&cur.length===1?[]:[p]; /* 1 คน = 1 ระยะ */ const prev=reviews[id];
   reviews[id]=Object.assign({},prev,{phase:next.join(",")}); render(); logEv("phase",d.name+" → "+(next.join(",")||"-"));
   api("setPhase",[{key:id,name:d.name,phase:next.join(","),by:reviewer}]).then(()=>toast(`${d.name}: ระยะ ${next.join(", ")||"—"}`)).catch(err=>{ reviews[id]=prev; render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); }
 /* ===== KOL card ===== */
@@ -277,15 +272,15 @@ function renderSched(all){ const el=$("#sc"); if(!el||$("#tabs .tab.active").dat
         h+=`<div class="cell nwc${dow===0||dow===6?" we":""}${inW?(has?"":" rec"):" off"}" data-k="${esc(d.key)}" data-d="${x}" data-n="1" style="--ph:${c}">${has?`<div class="post nw" draggable="true" data-k="${esc(d.key)}" data-d="${x}" data-n="1" title="${esc(d.name)} · ${x} พ.ย. · Nano Week — กดเพื่อดู/แก้แนวคอนเทนต์" style="--ph:${c}">${src?`<img src="${src}" alt="">`:""}<span class="st st-${nPostOf(d,x).status}"></span></div>`:sug?`<div class="post sug nw" data-sug="1" title="MIDI แนะนำ ${x} พ.ย. — กดเพื่อยืนยัน" style="--ph:${c}">${src?`<img src="${src}" alt="">`:""}</div>`:first?`<span class="p1" title="โพสต์แรก ${x} พ.ย.">1</span>`:""}</div>`; }); });
     for(let i=0;i<NWP.short;i++){ h+=`<div class="who nw empty"><div class="av av-txt">+</div><div style="min-width:0"><div class="nm">รอเติม Nano</div><div class="f">ต่ำกว่า 10K</div></div></div>`+TL_DAYS.map(x=>`<div class="cell nwc${x>=NW.from&&x<=NW.to?"":" off"}"></div>`).join(""); } }
   el.innerHTML=h;
-  const withDates=all.filter(d=>datesOf(d).length).length, posts=Object.values(tot).reduce((s,t)=>s+t.n,0), nposts=NWP.pick.filter(d=>nanoDatesOf(d).length).length;
-  $("#sc-sum").textContent=`กำหนดวันแล้ว ${withDates}/${all.length} คน · รวม ${posts} โพสต์ (Nano Week ${nposts}/${NWP.pick.length}) · รูปจาง ๆ เส้นประ = วันที่ MIDI แนะนำ (กดเพื่อยืนยัน หรือลากไปวันอื่น) · ขีดสีใต้ช่อง = วันในระยะของคนนั้น`;
+  const multi=all.filter(d=>datesOf(d).length>1).length, withDates=all.filter(d=>datesOf(d).length).length, posts=Object.values(tot).reduce((s,t)=>s+t.n,0), nposts=NWP.pick.filter(d=>nanoDatesOf(d).length).length;
+  $("#sc-sum").textContent=(multi?`⚠ มี ${multi} คนลงเกิน 1 โพสต์ (กติกา: 1 คน 1 โพสต์ ยกเว้น Nano Week) — กดรูปแล้ว "เอาออกจากวันนี้" · `:"")+`กำหนดวันแล้ว ${withDates}/${all.length} คน · รวม ${posts} โพสต์ (Nano Week ${nposts}/${NWP.pick.length}) · รูปจาง ๆ เส้นประ = วันที่ MIDI แนะนำ (กดเพื่อยืนยัน หรือลากไปวันอื่น) · ขีดสีใต้ช่อง = วันในระยะของคนนั้น`;
   // drag & drop
   let drag=null;
   el.querySelectorAll(".who[data-k],.post[data-k]").forEach(n=>{ n.addEventListener("dragstart",e=>{ drag={k:n.dataset.k,from:n.dataset.d?+n.dataset.d:null,n:!!n.dataset.n}; e.dataTransfer.effectAllowed="move"; try{ e.dataTransfer.setData("text/plain",n.dataset.k); }catch(_){} n.classList.add("ghost"); }); n.addEventListener("dragend",()=>n.classList.remove("ghost")); });
   el.querySelectorAll(".cell").forEach(c=>{ const okDrop=()=>drag&&drag.k===c.dataset.k&&drag.n===!!c.dataset.n&&(!c.dataset.n||!c.classList.contains("off"));
     c.addEventListener("dragover",e=>{ if(okDrop()){ e.preventDefault(); c.classList.add("over"); } }); c.addEventListener("dragleave",()=>c.classList.remove("over"));
-    c.addEventListener("drop",e=>{ e.preventDefault(); c.classList.remove("over"); if(!okDrop()) return; const d=data.find(x=>x.key===c.dataset.k); const day=+c.dataset.d; if(drag.n){ setNanoDates(d,[day]); drag=null; return; } let ds=datesOf(d); if(drag.from!=null) ds=ds.filter(x=>x!==drag.from); if(!ds.includes(day)) ds.push(day); setDates(d,ds); drag=null; });
-    c.addEventListener("click",e=>{ if(!c.dataset.k) return; const pst=e.target.closest(".post"); if(c.dataset.n){ const d=data.find(x=>x.key===c.dataset.k); if(pst&&pst.dataset.sug){ setNanoDates(d,[+c.dataset.d]); return; } if(pst){ openPost(d,+c.dataset.d,true); return; } if(SC_SEL==="n:"+c.dataset.k&&!c.classList.contains("off")) setNanoDates(d,[+c.dataset.d]); return; } if(pst&&pst.dataset.sug){ const d=data.find(x=>x.key===c.dataset.k); setDates(d,datesOf(d).concat([+c.dataset.d])); return; } if(pst){ const d=data.find(x=>x.key===c.dataset.k); openPost(d,+c.dataset.d); return; } if(SC_SEL===c.dataset.k){ const d=data.find(x=>x.key===c.dataset.k); const ds=datesOf(d); if(!ds.includes(+c.dataset.d)){ ds.push(+c.dataset.d); setDates(d,ds); } } }); });
+    c.addEventListener("drop",e=>{ e.preventDefault(); c.classList.remove("over"); if(!okDrop()) return; const d=data.find(x=>x.key===c.dataset.k); const day=+c.dataset.d; if(drag.n){ setNanoDates(d,[day]); drag=null; return; } setDates(d,[day]); drag=null; /* 1 คน = 1 โพสต์ */ });
+    c.addEventListener("click",e=>{ if(!c.dataset.k) return; const pst=e.target.closest(".post"); if(c.dataset.n){ const d=data.find(x=>x.key===c.dataset.k); if(pst&&pst.dataset.sug){ setNanoDates(d,[+c.dataset.d]); return; } if(pst){ openPost(d,+c.dataset.d,true); return; } if(SC_SEL==="n:"+c.dataset.k&&!c.classList.contains("off")) setNanoDates(d,[+c.dataset.d]); return; } if(pst&&pst.dataset.sug){ const d=data.find(x=>x.key===c.dataset.k); setDates(d,[+c.dataset.d]); return; } if(pst){ const d=data.find(x=>x.key===c.dataset.k); openPost(d,+c.dataset.d); return; } if(SC_SEL===c.dataset.k){ const d=data.find(x=>x.key===c.dataset.k); if(!datesOf(d).includes(+c.dataset.d)) setDates(d,[+c.dataset.d]); } }); });
   renderPostList(all);
   el.querySelectorAll(".who[data-k]").forEach(w=>w.addEventListener("click",()=>{ const sk=(w.dataset.n?"n:":"")+w.dataset.k; SC_SEL=SC_SEL===sk?null:sk; el.querySelectorAll(".who[data-k]").forEach(x=>x.classList.toggle("sel",(x.dataset.n?"n:":"")+x.dataset.k===SC_SEL)); if(SC_SEL) toast("แตะช่องวันเพื่อวาง "+(data.find(x=>x.key===w.dataset.k)||{}).name+(w.dataset.n?" (Nano Week 13–19)":"")); }));
 }
@@ -335,10 +330,11 @@ function setDates(d,ds){ if(!reviewer){ askName(()=>setDates(d,ds)); return; } d
 function autoDates(all){ const load={}; all.forEach(d=>datesOf(d).forEach(x=>load[x]=(load[x]||0)+1)); const out=[]; const AIP=aiPlan(all).pick;
   const pickDay=(days)=>{ let best=days[0], bl=Infinity; days.forEach(x=>{ const l=(load[x]||0)-(TL_W[x]||1)*0.5; if(l<bl){ bl=l; best=x; } }); load[best]=(load[best]||0)+1; return best; };
   all.filter(d=>!datesOf(d).length).sort((a,b)=>(b.f||0)-(a.f||0)).forEach(d=>{ let ph=phasesOf(d); if(!ph.length&&AIP[d.key]) ph=AIP[d.key].ph; const ds=[]; const txt=d.name+" "+d.cat; const f=d.f||0;
-    if(ph.includes("1")) ds.push(d.artist||f>=1e6?8:pickDay([6,7,9,10,11,12]));
-    if(ph.includes("2")) ds.push(pickDay([15,16,17,18,19,13,14,12]));
-    if(ph.includes("3")) ds.push(d.artist||f>=3e5?pickDay([27,28,29]):/แฟชั่น|fashion|สตรีท|street|เต้น|dance|ศิลปะ|art/i.test(txt)?pickDay([20,21,22]):pickDay([23,24,25,26,21,22]));
-    if(!ph.length) ds.push(pickDay([15,16,17,18,19,20,21,22]));
+    const p0=ph[0]||"";
+    if(p0==="1") ds.push(d.artist||f>=1e6?8:pickDay([6,7,9,10,11,12]));
+    else if(p0==="2") ds.push(pickDay([15,16,17,18,19,13,14]));
+    else if(p0==="3") ds.push(d.artist||f>=3e5?pickDay([27,28,29]):/แฟชั่น|fashion|สตรีท|street|เต้น|dance|ศิลปะ|art/i.test(txt)?pickDay([20,21,22]):pickDay([23,24,25,26,21,22]));
+    else ds.push(pickDay([15,16,17,18,19,20,21,22]));
     out.push({key:rid(d),name:d.name,dates:rawDates([...new Set(ds)],nanoDatesOf(d)),by:reviewer}); });
   return out; }
 /* ===== Nano Week: Nano 15 คน โพสต์ที่ 2 ช่วง 7 วันก่อนงาน (13–19 พ.ย.) แนวใหม่ไม่ซ้ำโพสต์แรก =====
@@ -398,7 +394,8 @@ $("#sc-undo").onclick=()=>{ $("#umodal").hidden=false; $("#ulist").textContent="
     $("#ulist").innerHTML=list.map(x=>`<button type="button" data-id="${esc(x.id)}"><span>${esc(x.label||"สำเนา")} · ${x.n} คน</span><small>${new Date(x.at).toLocaleString("th-TH",{dateStyle:"short",timeStyle:"short"})} · ${esc(x.by||"")}</small></button>`).join("");
     $("#ulist").querySelectorAll("button").forEach(b=>b.onclick=()=>{ if(!reviewer){ askName(()=>b.click()); return; } $("#umodal").hidden=true; prog.manual=true; progStart(); api("restoreSnapshot",[{id:b.dataset.id,by:reviewer}]).then(()=>{ toast("กู้คืนแล้ว"); load(); }).catch(err=>{ progDone(); toast("กู้คืนไม่สำเร็จ: "+(err&&err.message||err)); }); }); }).catch(err=>{ $("#ulist").textContent="โหลดไม่สำเร็จ: "+(err&&err.message||err); }); };
 $("#u-cancel").onclick=()=>{ $("#umodal").hidden=true; }; $("#umodal").addEventListener("click",e=>{ if(e.target.id==="umodal") $("#umodal").hidden=true; });
-$("#sc-auto").onclick=async()=>{ if(!reviewer){ askName(()=>$("#sc-auto").onclick()); return; } const all=teamList([...data].sort((a,b)=>(b.f||0)-(a.f||0))).all; const list=autoDates(all); const NP=nanoPlan(all);
+$("#sc-auto").onclick=async()=>{ if(!reviewer){ askName(()=>$("#sc-auto").onclick()); return; } const all=teamList([...data].sort((a,b)=>(b.f||0)-(a.f||0))).all; const list=autoDates(all);
+  const tmp={}; list.forEach(r=>{ tmp[r.key]=reviews[r.key]; reviews[r.key]=Object.assign({},reviews[r.key],{dates:r.dates}); }); const NP=nanoPlan(all); Object.assign(reviews,tmp); // วางวันหลักก่อน แล้วค่อยหาวัน Nano ไม่ให้ชนวันโพสต์แรก
   Object.keys(NP.sug).forEach(k=>{ const d=all.find(x=>x.key===k); if(!d) return; const id=rid(d); const r=list.find(x=>x.key===id); if(r){ const m=r.dates.split(",").filter(x=>/^\d+$/.test(x)).map(Number); r.dates=rawDates(m,[NP.sug[k]]); } else list.push({key:id,name:d.name,dates:rawDates(datesOf(d),[NP.sug[k]]),by:reviewer}); });
   if(!list.length){ toast("ทุกคนมีวันแล้ว"); return; } await snapshot("ก่อนใช้วันที่ MIDI วางไว้"); const prev={}; list.forEach(r=>{ prev[r.key]=reviews[r.key]; reviews[r.key]=Object.assign({},reviews[r.key],{dates:r.dates}); }); render(); logEv("auto-dates",list.length);
   api("setDatesMany",[list]).then(()=>toast(`วางวันให้ ${list.length} คนแล้ว — ลากขยับได้เลย`)).catch(err=>{ Object.assign(reviews,prev); render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); };
