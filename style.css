@@ -296,3 +296,4 @@ body.present .rv-lbl{display:inline-block}
 .ph .brief{font-size:12px;color:var(--ink);background:var(--bg);border-radius:8px;padding:6px 8px;margin-bottom:10px;line-height:1.45}
 .plan-note.hash{font-size:12px;color:var(--ink2);background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
 .plan-note.hash b{color:var(--brand);font-weight:600}
+.ai-tag{font-size:11px;color:var(--brand);font-family:var(--display);font-weight:600;letter-spacing:.03em;margin-bottom:6px}
