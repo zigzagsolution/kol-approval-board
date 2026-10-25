@@ -60,8 +60,9 @@ const avSrc=d=>{ const f=AV[normName(d.name)]; return f?"avatars/"+f:""; };
 const iniOf=d=>esc(String(d.name||"?").trim().replace(/^[^a-zA-Zก-๙0-9]+/,"").slice(0,1).toUpperCase()||"?");
 const phasesOf=d=>{ const r=reviews[rid(d)]; return String(r&&r.phase||"").split(",").map(s=>s.trim()).filter(Boolean); };
 /* ป้าย Code ที่แสดงบนหน้า: ชื่อที่โชว์ (ค่าว่าง = ไม่โชว์) */
-const CODE_LABEL={ PANU:"P'PANU Recommend", BEE:"" };
-const codeLabel=c=>c?(c in CODE_LABEL?CODE_LABEL[c]:c):"";
+const CODE_LABEL={ PANU:"P'PANU Recommend", BEE:"MiDi", "":"MiDi" };
+const codeLabel=c=>{ c=c||""; return c in CODE_LABEL?CODE_LABEL[c]:c; };
+const codeSoft=c=>!c||c==="BEE";
 let REASONS=["ไม่ตรงสาย / กลุ่มเป้าหมาย","ภาพลักษณ์ยังไม่เหมาะ","ยอดผู้ติดตามน้อยเกินไป","คอนเทนต์ไม่น่าสนใจ","เคยรับงานแล้วทิ้ง"];
 let history={};
 const rid=d=>"r_"+hash(d.key);
@@ -87,9 +88,9 @@ function render(){
   $("#rev-l").textContent=`อยู่ในทีม ${data.length-nf} คน · ยืนยันแล้ว ${np} · ยังไม่ได้ดู ${nw} · ตัดออก ${nf}`+(upd.length?` · อัปเดตใหม่ ${upd.length}`:"");
   $("#rvchips").innerHTML=[["","ทั้งหมด",data.length],["pass","ยืนยันแล้ว",np],["fail","ตัดออก",nf],["wait","ยังไม่ได้ดู",nw]].map(([k,l,n])=>`<button type="button" class="chip${filterRv===k?" active":""}" data-k="${k}">${l} <b>${n}</b></button>`).join("");
   $("#rvchips").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{filterRv=b.dataset.k;logEv("filter","rv:"+(b.dataset.k||"all"));render();});
-  const codes=[...new Set(data.map(d=>d.code).filter(c=>codeLabel(c)))].sort(); const cc=$("#codechips"); cc.hidden=!codes.length;
-  cc.innerHTML=codes.length?[["","ทุก Code",data.length]].concat(codes.map(c=>[c,codeLabel(c),data.filter(d=>d.code===c).length])).map(([k,l,n])=>`<button type="button" class="chip code${filterCode===k?" active":""}" data-k="${esc(k)}">${esc(l)} <b>${n}</b></button>`).join(""):"";
-  cc.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{filterCode=b.dataset.k;logEv("filter","code:"+(b.dataset.k||"all"));render();});
+  const codeKey=d=>codeSoft(d.code)?"MIDI":d.code; const codes=[...new Set(data.map(codeKey))].sort((a,b)=>a==="MIDI"?1:b==="MIDI"?-1:a.localeCompare(b)); const cc=$("#codechips"); cc.hidden=codes.length<2;
+  cc.innerHTML=[["*","ทั้งหมด",data.length]].concat(codes.map(c=>[c,c==="MIDI"?"MiDi แนะนำ":codeLabel(c),data.filter(d=>codeKey(d)===c).length])).map(([k,l,n])=>`<button type="button" class="chip code${(filterCode||"*")===k?" active":""}${k==="MIDI"?" soft":""}" data-k="${esc(k)}">${esc(l)} <b>${n}</b></button>`).join("");
+  cc.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{filterCode=b.dataset.k==="*"?"":b.dataset.k;logEv("filter","code:"+(filterCode||"all"));render();});
   // share by tier
   const sh=$("#share"); sh.innerHTML=""; const lbl=[];
   TIERS.forEach(t=>{ const g=sorted.filter(d=>d.tier===t.k), r=g.reduce((s,d)=>s+(d.f||0),0); if(!r) return;
@@ -106,7 +107,7 @@ function render(){
   // ticks
   const tk=$("#ticks"); tk.innerHTML=""; const tv=scale==="linear"?[0,0.5e6,1e6,1.5e6,2e6]:[1e4,1e5,1e6]; tv.filter(v=>v<=max).forEach(v=>{ const s=document.createElement("span"); s.style.left=(widthOf(v,max)*88)+"%"; s.textContent=v?fmtN(v):"0"; tk.appendChild(s); });
   // rows
-  const vis=sorted.filter(d=>(!filterTier||d.tier===filterTier)&&(!filterRv||(filterRv==="wait"?!rvOf(d):rvOf(d)===filterRv))&&(!filterCode||d.code===filterCode)&&(!q||(d.name+" "+d.cat+" "+d.group+" "+(d.code||"")).toLowerCase().includes(q)));
+  const vis=sorted.filter(d=>(!filterTier||d.tier===filterTier)&&(!filterRv||(filterRv==="wait"?!rvOf(d):rvOf(d)===filterRv))&&(!filterCode||(filterCode==="MIDI"?codeSoft(d.code):d.code===filterCode))&&(!q||(d.name+" "+d.cat+" "+d.group+" "+(d.code||"")).toLowerCase().includes(q)));
   const wrap=$("#rows"); wrap.innerHTML=""; let lastTier=null, rank=0; const rankOf=new Map(sorted.map((d,i)=>[d,i+1]));
   const pinned=vis.filter(d=>d.sug&&!rvOf(d)); const rest=vis.filter(d=>!(d.sug&&!rvOf(d)));
   if(pinned.length){ const ph=document.createElement("div"); ph.className="pinhead"; ph.innerHTML=`<b>KOL เพิ่มมาใหม่</b><span>${pinned.length} รายการ รอพิจารณา</span><span class="blink">● กดดูแล้วติ๊กผล</span>`; wrap.appendChild(ph); pinned.forEach(d=>wrap.appendChild(rowEl(d,rankOf,reach,max,true))); const sp=document.createElement("div"); sp.className="pin"; wrap.appendChild(sp); }
@@ -219,7 +220,7 @@ function togglePhase(d,p){ if(!reviewer){ askName(()=>togglePhase(d,p)); return;
   api("setPhase",[{key:id,name:d.name,phase:next.join(","),by:reviewer}]).then(()=>toast(`${d.name}: ระยะ ${next.join(", ")||"—"}`)).catch(err=>{ reviews[id]=prev; render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); }
 /* ===== KOL card ===== */
 function openCard(d){ const R=reviews[rid(d)]||{}, rv=rvOf(d), ph=phasesOf(d), t=TIERS.find(x=>x.k===d.tier); const rank=[...data].sort((a,b)=>(b.f||0)-(a.f||0)).indexOf(d)+1; const hs=histLine(d);
-  $("#kcard").innerHTML=`<button class="kc-x" type="button" id="kc-x" aria-label="ปิด">×</button><div class="kc-top">${avatarEl(d)}<div><h3>${esc(d.name)}</h3><div class="ct">${esc(d.cat||"—")}</div>${codeLabel(d.code)?`<span class="badge code">${esc(codeLabel(d.code))}</span>`:""}${d.artist?` <span class="badge art">ARTIST</span>`:""}</div></div>
+  $("#kcard").innerHTML=`<button class="kc-x" type="button" id="kc-x" aria-label="ปิด">×</button><div class="kc-top">${avatarEl(d)}<div><h3>${esc(d.name)}</h3><div class="ct">${esc(d.cat||"—")}</div>${codeLabel(d.code)?`<span class="badge code${codeSoft(d.code)?" soft":""}">${esc(codeLabel(d.code))}</span>`:""}${d.artist?` <span class="badge art">ARTIST</span>`:""}</div></div>
   <div class="kc-bd"><div class="kc-k"><div><div class="l">ผู้ติดตาม</div><div class="v">${fmtN(d.f)}</div></div><div><div class="l">ระดับ</div><div class="v">${t?t.n:"—"}</div></div><div><div class="l">อันดับ reach</div><div class="v">#${rank}</div></div></div>
   <div class="kc-row">สถานะ: <b>${rv==="pass"?"✓ ยืนยันแล้ว":rv==="fail"?"✗ ตัดออกจากทีม":"อยู่ในทีม (ยังไม่ได้ยืนยัน)"}</b>${R.by?` · โดย ${esc(R.by)}`:""}${R.reason?`<br>เหตุผล: ${esc(R.reason)}`:""}</div>${hs?`<div class="kc-row">ประวัติ: ${esc(hs)}</div>`:""}${d.note?`<div class="kc-row">หมายเหตุ: ${esc(d.note).slice(0,300)}</div>`:""}
   ${inTeam(d)?`<div class="kc-row">ระยะในแผน:<div class="kc-ph">${PHASES.map(p=>`<button type="button" data-p="${p.n}" class="${ph.includes(p.n)?"on":""}" style="--ph:${p.c}">ระยะ ${p.n}</button>`).join("")}</div></div>`:""}
@@ -234,7 +235,7 @@ function rowEl(d,rankOf,reach,max,isNew){
     const st=statusOf(d), rk=rankOf.get(d), rv=rvOf(d), R=reviews[rid(d)]||{}; const row=document.createElement("div"); row.className="row"+(st?" "+st:"")+(rv?" "+rv:"")+(isNew?" sugnew":"");
     const nm=`<a href="#" class="open-card">${esc(d.name)}</a>`;
     row.innerHTML=`<div class="rk${rk<=10?" lead":""}">${d.sug?"★":rk}</div>
-      <div class="who">${avatarEl(d)}<div class="who-t"><div class="nm">${nm}${codeLabel(d.code)?`<span class="badge code" title="Code: ${esc(d.code)}">${esc(codeLabel(d.code))}</span>`:""}${d.artist?`<span class="badge art">ARTIST</span>`:""}${d.sug?`<span class="badge sug" title="เพิ่มโดย ${esc(d.by)}">เพิ่มใหม่ · ${esc(d.by||"ลูกค้า")}</span>`:""}${st?`<span class="badge ${st}">${st==="new"?"NEW":"EDIT"}</span>`:""}</div><div class="ct" title="${esc(d.cat)}">${esc(d.cat||"—")}</div></div></div>
+      <div class="who">${avatarEl(d)}<div class="who-t"><div class="nm">${nm}${codeLabel(d.code)?`<span class="badge code${codeSoft(d.code)?" soft":""}" title="${codeSoft(d.code)?"MiDi แนะนำ":"Code: "+esc(d.code)}">${esc(codeLabel(d.code))}</span>`:""}${d.artist?`<span class="badge art">ARTIST</span>`:""}${d.sug?`<span class="badge sug" title="เพิ่มโดย ${esc(d.by)}">เพิ่มใหม่ · ${esc(d.by||"ลูกค้า")}</span>`:""}${st?`<span class="badge ${st}">${st==="new"?"NEW":"EDIT"}</span>`:""}</div><div class="ct" title="${esc(d.cat)}">${esc(d.cat||"—")}</div></div></div>
       <div class="trk" title="${fmtN(d.f)} ผู้ติดตาม"><div class="fill" style="width:${(widthOf(d.f,max)*100).toFixed(2)}%;background:${heat(d.f)}"></div></div>
       <div class="val">${fmtN(d.f)}<small>${d.f?Math.round(d.f/reach*1000)/10+"% ของ reach":"ไม่ระบุ"}</small></div>
       <div class="rvw"><span class="rv-lbl ${rv||"wait"}">${rv==="pass"?"✓ ยืนยัน":rv==="fail"?"✗ ตัดออก":"ในทีม"}</span><div class="rv" title="ติ๊กผลพิจารณา"><button type="button" class="pass${rv==="pass"?" on":""}" data-s="pass">✓ ผ่าน</button><button type="button" class="fail${rv==="fail"?" on":""}" data-s="fail">✗ ตัดออก</button></div>${rv&&R.by?`<div class="meta" title="${esc((R.by||"")+(R.reason?" · "+R.reason:""))}"><b>${rv==="fail"?"✗":"✓"} ${esc(R.by)}</b>${R.reason?` · ${esc(R.reason)}`:""}</div>`:""}${histLine(d)?`<div class="meta" title="${esc(histLine(d))}">${esc(histLine(d))}</div>`:""}</div>`;

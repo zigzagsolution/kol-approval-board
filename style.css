@@ -97,6 +97,8 @@ button{font:inherit;cursor:pointer;color:inherit}
 .who .ct{font-size:11px;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .badge{font-family:var(--display);font-size:9px;letter-spacing:.1em;padding:1px 6px;border-radius:5px;color:#fff;font-weight:700;flex:none}
 .badge.new{background:var(--accent)}.badge.code{background:var(--paper);color:var(--brand);border:1px solid var(--brand);letter-spacing:.06em}
+.badge.code.soft{color:var(--mute);border-color:var(--line);background:transparent;font-weight:600;opacity:.75;letter-spacing:.04em}
+.chip.code.soft{color:var(--mute)}.chip.code.soft.active{color:#fff}
 .chip.code{font-family:var(--display);font-weight:600;letter-spacing:.04em}#codechips[hidden]{display:none}.badge.changed{background:var(--warn);color:#1a1300}.badge.art{background:var(--ink);color:#fff}.badge.sug{background:var(--warn);color:#1a1300}
 .trk{height:14px;background:var(--track);border-radius:4px;overflow:hidden;min-width:0;position:relative;width:88%}
 .trk .fill{height:100%;border-radius:4px;transition:width .5s cubic-bezier(.2,.7,.2,1)}
