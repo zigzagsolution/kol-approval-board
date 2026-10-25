@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KOL Approval Board — MIDI digital</title>
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+<div class="prog" id="prog"><i></i></div>
+<header class="top"><div class="wrap">
+  <img class="logo" src="logo.png" alt="MIDI digital Co., Ltd." width="118" height="66"><div class="brand"><div class="eb">อวดเมืองโคราช · 20–29 พ.ย. 2569</div><h1>KOL <b>Approval</b> Board</h1></div>
+  <div class="live">
+    <span class="pill"><span class="dot" id="dot"></span><span id="status">กำลังเชื่อมต่อ…</span></span>
+    <span class="pill" id="stamp">อัปเดตล่าสุด —</span>
+    <button class="btn" id="who" type="button" title="เปลี่ยนชื่อผู้พิจารณา">👤 <span id="who-n">ยังไม่ระบุชื่อ</span></button>
+    <button class="btn" id="refresh" type="button">รีเฟรช</button>
+  </div>
+</div></header>
+
+<main class="wrap">
+  <div class="msg" id="msg" hidden></div>
+  <section class="band">
+    <div class="box">
+      <h2>ภาพรวม</h2>
+      <div class="big">
+        <div><div class="l">KOL ทั้งหมด</div><div class="v" id="k-n">0</div></div>
+        <div><div class="l">Reach รวม</div><div class="v" id="k-reach">0</div></div>
+        <div><div class="l">ผ่าน / ไม่ผ่าน</div><div class="v"><span id="k-pass" style="color:var(--good)">0</span><span style="color:var(--mute);font-weight:500"> / </span><span id="k-fail" style="color:var(--accent)">0</span></div></div>
+      </div>
+      <div class="share" id="share"></div>
+      <div class="share-l" id="share-l"></div>
+      <div class="share-l" id="rev-l" style="margin-top:6px"></div>
+    </div>
+    <div class="box">
+      <h2>จำนวนคนในแต่ละระดับ <span style="font-weight:500;letter-spacing:0;text-transform:none;color:var(--mute)">(กดเพื่อกรอง)</span></h2>
+      <div class="hist" id="hist"></div>
+    </div>
+  </section>
+
+  <section class="feed" id="feed" hidden>
+    <div class="h"><strong>มีอัปเดตใหม่</strong><span id="feed-n" style="color:var(--mute);font-size:13px"></span><button class="btn" id="ack" type="button" style="margin-left:auto">รับทราบแล้ว</button></div>
+    <ul id="feed-list"></ul>
+  </section>
+
+  <div class="cta"><div><div class="t">มี KOL ที่อยากเพิ่มเข้ามา?</div><div class="s">กรอกชื่อ/ลิงก์ ทีมจะตรวจสอบและใส่ในแผนให้ — ทุกคนที่มีลิงก์นี้เพิ่มได้</div></div><button class="btn primary" id="suggest" type="button">+ เพิ่ม KOL ใหม่ ตรงนี้กด</button></div>
+  <div class="ctl">
+    <input id="q" type="search" placeholder="ค้นหาชื่อ / หมวด / Code…" autocomplete="off">
+    <div class="chips" id="rvchips"></div>
+  </div>
+  <div class="ctl" id="codechips" hidden></div>
+
+  <section class="ladder">
+    <div class="axis"><span>#</span><span>KOL</span><div class="ticks" id="ticks"></div><span style="text-align:right">ผู้ติดตาม</span><span style="text-align:right">ผลพิจารณา</span></div>
+    <div id="rows"><div class="skel" id="skel"></div></div>
+  </section>
+
+  <div class="foot">
+    <span>ข้อมูลอัปเดตอัตโนมัติทุก 30 วินาที · ผลพิจารณาบันทึกทันทีที่กด · ระบบบันทึกการใช้งานเพื่อติดตามการพิจารณา</span><span style="margin-left:auto;font-family:var(--display);color:var(--ink2)">MIDI digital Co., Ltd.</span>
+  </div>
+</main>
+<div class="modal" id="modal" hidden><div class="card"><h3>คุณชื่ออะไร?</h3><p>ใส่ชื่อก่อนติ๊กผล เพื่อให้ทีมรู้ว่าใครเป็นผู้พิจารณาแต่ละราย</p><input id="name-in" type="text" placeholder="เช่น คุณเอ ฝ่ายการตลาด" maxlength="60" autocomplete="name"><div class="acts"><button class="btn" id="name-cancel" type="button">ยกเลิก</button><button class="btn primary" id="name-ok" type="button">บันทึกชื่อ</button></div></div></div>
+<div class="modal" id="smodal" hidden><div class="card" style="max-width:440px"><h3>เพิ่ม KOL ใหม่</h3><p>กรอกเท่าที่รู้ ทีมจะตรวจสอบและเพิ่มในแผนให้</p>
+<input id="s-name" type="text" placeholder="ชื่อบัญชี / ชื่อช่อง *" maxlength="80">
+<input id="s-link" type="url" placeholder="ลิงก์โปรไฟล์ (TikTok / FB / IG)" maxlength="300">
+<input id="s-f" type="text" placeholder="ยอดผู้ติดตาม เช่น 120K (ถ้ารู้)" maxlength="20">
+<input id="s-cat" type="text" placeholder="หมวด เช่น กิน/คาเฟ่/ท่องเที่ยว" maxlength="80">
+<input id="s-note" type="text" placeholder="เหตุผลที่เพิ่ม / หมายเหตุ" maxlength="300">
+<div class="acts"><button class="btn" id="s-cancel" type="button">ยกเลิก</button><button class="btn primary" id="s-ok" type="button">บันทึก</button></div></div></div>
+<div class="modal" id="rmodal" hidden><div class="card" style="max-width:440px"><h3 id="r-title">ไม่ผ่านเพราะอะไร?</h3><p>จิ้มเลือกเหตุผล (เลือกได้มากกว่า 1) แล้วกดบันทึก</p>
+<div class="reasons" id="r-chips"></div>
+<input id="r-note" type="text" placeholder="เหตุผลเพิ่มเติม (ถ้ามี)" maxlength="200">
+<div class="acts"><button class="btn" id="r-cancel" type="button">ยกเลิก</button><button class="btn primary" id="r-ok" type="button">บันทึก ไม่ผ่าน</button></div></div></div>
+<div class="ov" id="ov" hidden><div class="ring" style="--p:0"><i id="ov-p">0%</i></div><div class="lb" id="ov-l">กำลังโหลดข้อมูล…</div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="config.js?v=1"></script>
+<script src="app.js?v=1"></script>
+</body>
+</html>
