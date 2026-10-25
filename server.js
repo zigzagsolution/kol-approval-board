@@ -71,6 +71,22 @@ function setPhases(list) {
     return {ok:true, n:list.length};
   } finally { lock.releaseLock(); }
 }
+/** วันโพสต์ {key,name,dates:"8,21",by} — คอลัมน์ I ของ Reviews */
+function setDates(r) { return setDatesMany([r]); }
+function setDatesMany(list) {
+  if (!list || !list.length) return {ok:true, n:0};
+  const lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    const sh = reviewSheet_(); const vals = sh.getDataRange().getValues();
+    if (String(vals[0][8]||"") !== "วันโพสต์") sh.getRange(1, 9).setValue("วันโพสต์");
+    if (String(vals[0][9]||"") !== "ผู้กำหนดวัน") sh.getRange(1, 10).setValue("ผู้กำหนดวัน");
+    const idx = {}; for (let i = 1; i < vals.length; i++) idx[String(vals[i][0])] = i+1;
+    list.slice(0, 300).forEach(r => { if (!r || !r.key) return; const row = idx[String(r.key)];
+      if (row) sh.getRange(row, 9, 1, 2).setValues([[String(r.dates||""), String(r.by||"").slice(0,60)]]);
+      else sh.appendRow([String(r.key), String(r.name||""), "", "", new Date(), "", "", "", String(r.dates||""), String(r.by||"").slice(0,60)]); });
+    return {ok:true, n:list.length};
+  } finally { lock.releaseLock(); }
+}
 /** คำแนะนำ KOL จากลูกค้า {name,link,f,cat,note,by,vid} */
 function addSuggestion(s) {
   if (!s || !s.name) throw new Error("missing name");
@@ -161,7 +177,7 @@ function readReviews_() {
   const out = [];
   for (let i = 1; i < vals.length; i++) {
     if (!vals[i][0]) continue;
-    out.push({ key: String(vals[i][0]), name: String(vals[i][1]), status: String(vals[i][2]), by: String(vals[i][3]), at: vals[i][4] ? new Date(vals[i][4]).getTime() : null, reason: String(vals[i][5]||""), phase: String(vals[i][6]||""), phaseBy: String(vals[i][7]||"") });
+    out.push({ key: String(vals[i][0]), name: String(vals[i][1]), status: String(vals[i][2]), by: String(vals[i][3]), at: vals[i][4] ? new Date(vals[i][4]).getTime() : null, reason: String(vals[i][5]||""), phase: String(vals[i][6]||""), phaseBy: String(vals[i][7]||""), dates: String(vals[i][8]||""), datesBy: String(vals[i][9]||"") });
   }
   return out;
 }
@@ -171,4 +187,4 @@ function setup_() {
   Logger.log("Review sheet: " + sh.getParent().getUrl());
 }
 
-return { getData, setReview, setPhase, setPhases, addSuggestion, logEvents };
+return { getData, setReview, setPhase, setPhases, setDates, setDatesMany, addSuggestion, logEvents };

@@ -58,6 +58,7 @@ function avatarEl(d){ const f=AV[normName(d.name)]; const ini=esc(String(d.name|
   return f?`<div class="av"><img src="avatars/${f}" alt="" loading="lazy" width="40" height="40"></div>`:`<div class="av av-txt">${ini}</div>`; }
 const avSrc=d=>{ const f=AV[normName(d.name)]; return f?"avatars/"+f:""; };
 const iniOf=d=>esc(String(d.name||"?").trim().replace(/^[^a-zA-Zก-๙0-9]+/,"").slice(0,1).toUpperCase()||"?");
+const datesOf=d=>{ const r=reviews[rid(d)]; return String(r&&r.dates||"").split(",").map(s=>+s).filter(n=>n>=6&&n<=29); };
 const phasesOf=d=>{ const r=reviews[rid(d)]; return String(r&&r.phase||"").split(",").map(s=>s.trim()).filter(Boolean); };
 /* ป้าย Code ที่แสดงบนหน้า: ชื่อที่โชว์ (ค่าว่าง = ไม่โชว์) */
 const CODE_LABEL={ PANU:"P'PANU Recommend", BEE:"MiDi", "":"MiDi" };
@@ -118,11 +119,12 @@ function render(){
   const tl=teamList(sorted);
   $("#t-review").textContent=nw; $("#t-team").textContent=`${Math.min(tl.all.length,TARGET)}/${TARGET}`; $("#t-target").textContent=TARGET;
   $("#t-plan").textContent=tl.all.filter(d=>phasesOf(d).length).length+"/"+tl.all.length;
-  renderTeam(sorted,reach); renderPlan(sorted); renderAI(tl.all);
+  renderTeam(sorted,reach); renderPlan(sorted); renderAI(tl.all); renderSched(tl.all);
+  $("#t-sched").textContent=tl.all.filter(d=>datesOf(d).length).length+"/"+tl.all.length;
 }
 /* ===== tabs ===== */
 let TAB="review"; try{ TAB=localStorage.getItem("kol_tab")||"review"; }catch(e){}
-function setTab(t){ TAB=t; document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===t)); document.querySelectorAll(".page").forEach(p=>p.hidden=p.dataset.page!==t); try{localStorage.setItem("kol_tab",t);}catch(e){} try{ logEv("tab",t); }catch(e){} }
+function setTab(t){ TAB=t; document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===t)); document.querySelectorAll(".page").forEach(p=>p.hidden=p.dataset.page!==t); try{localStorage.setItem("kol_tab",t);}catch(e){} try{ logEv("tab",t); }catch(e){} if(t==="sched"&&typeof renderSched==="function"&&data.length) renderSched(teamList([...data].sort((a,b)=>(b.f||0)-(a.f||0))).all); }
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.tab)); setTab(TAB);
 $("#present").onclick=()=>{ const on=document.body.classList.toggle("present"); $("#present").textContent=on?"✕ ออกจากนำเสนอ":"▶ นำเสนอ"; if(on&&document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{}); if(!on&&document.fullscreenElement) document.exitFullscreen().catch(()=>{}); logEv("present",on?"on":"off"); };
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&document.body.classList.contains("present")) $("#present").click(); });
@@ -238,6 +240,48 @@ function togglePhase(d,p){ if(!reviewer){ askName(()=>togglePhase(d,p)); return;
   reviews[id]=Object.assign({},prev,{phase:next.join(",")}); render(); logEv("phase",d.name+" → "+(next.join(",")||"-"));
   api("setPhase",[{key:id,name:d.name,phase:next.join(","),by:reviewer}]).then(()=>toast(`${d.name}: ระยะ ${next.join(", ")||"—"}`)).catch(err=>{ reviews[id]=prev; render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); }
 /* ===== KOL card ===== */
+/* ===== schedule board: drag KOL → day ===== */
+let SC_SEL=null;
+function renderSched(all){ const el=$("#sc"); if(!el||$("#tabs .tab.active").dataset.tab!=="sched") return;
+  const ev={}; TL_EV.forEach(e=>ev[e.d]=e.t);
+  const tot={}; all.forEach(d=>datesOf(d).forEach(x=>{ tot[x]=tot[x]||{n:0,r:0}; tot[x].n++; tot[x].r+=(d.f||0); }));
+  let h=`<div class="corner">KOL · ${all.length} คน</div>`+TL_DAYS.map(x=>{ const dow=new Date(2026,10,x).getDay(); return `<div class="hd ph${tlPhase(x)}${dow===0||dow===6?" we":""}">${x}<small>${["อา","จ","อ","พ","พฤ","ศ","ส"][dow]}</small>${ev[x]?`<span class="ev" title="${esc(ev[x])}">${esc(ev[x])}</span>`:""}</div>`; }).join("");
+  const maxN=Math.max(1,...Object.values(tot).map(t=>t.n));
+  h+=`<div class="totl">โพสต์/วัน<br>reach/วัน<br><span style="font-size:9px">แถบ = แนะนำ</span></div>`+TL_DAYS.map(x=>{ const t=tot[x]||{n:0,r:0}; const w=TL_W[x]||1; return `<div class="tot${t.n?(w>=4&&t.n<2?" lo":t.n>=4?" hi":""):" lo"}" title="แนะนำความเข้ม ${w}/5">${t.n||"–"}<small>${t.r?fmtN(t.r):""}</small><span class="rec"><i style="width:${w*20}%"></i></span></div>`; }).join("");
+  const groups=[[1,"ระยะ 1 · เปิดตัว",PHASES[0].c],[2,"ระยะ 2 · ตัดสินใจเดินทาง",PHASES[1].c],[3,"ระยะ 3 · ระหว่างงาน",PHASES[2].c],[0,"ยังไม่ได้จัดระยะ","#c9c9ce"]];
+  const used=new Set();
+  groups.forEach(([p,label,c])=>{ const list=all.filter(d=>{ if(used.has(d.key)) return false; const ph=phasesOf(d); const ok=p?ph[0]===String(p):!ph.length; if(ok) used.add(d.key); return ok; }).sort((a,b)=>(b.f||0)-(a.f||0)); if(!list.length) return;
+    h+=`<div class="grp" style="--ph:${c}">${label} · ${list.length} คน</div>`;
+    list.forEach(d=>{ const ds=datesOf(d), ph=phasesOf(d); const src=avSrc(d); const ini=iniOf(d);
+      h+=`<div class="who${SC_SEL===d.key?" sel":""}" draggable="true" data-k="${esc(d.key)}" title="ลากไปวางในช่องวัน หรือแตะเพื่อเลือก">${src?`<div class="av"><img src="${src}" alt=""></div>`:`<div class="av av-txt">${ini}</div>`}<div style="min-width:0"><div class="nm">${esc(d.name)}</div><div class="f">${fmtN(d.f)}${ph.length?` · ระยะ ${ph.join(",")}`:""}</div></div><span class="n">${ds.length?ds.length+" โพสต์":""}</span></div>`;
+      TL_DAYS.forEach(x=>{ const dow=new Date(2026,10,x).getDay(); const inPh=ph.length?ph.includes(String(tlPhase(x))):false; const has=ds.includes(x);
+        h+=`<div class="cell${dow===0||dow===6?" we":""}${inPh&&!has?" rec":""}" data-k="${esc(d.key)}" data-d="${x}" style="--ph:${c}">${has?`<div class="post" draggable="true" data-k="${esc(d.key)}" data-d="${x}" title="${esc(d.name)} · ${x} พ.ย. (กดเพื่อเอาออก)" style="--ph:${c}">${src?`<img src="${src}" alt="">`:""}<span class="x">×</span></div>`:""}</div>`; }); }); });
+  el.innerHTML=h;
+  const withDates=all.filter(d=>datesOf(d).length).length, posts=Object.values(tot).reduce((s,t)=>s+t.n,0);
+  $("#sc-sum").textContent=`กำหนดวันแล้ว ${withDates}/${all.length} คน · รวม ${posts} โพสต์ · ช่องที่มีขีดสี = วันในระยะที่คนนั้นถูกจัดไว้`;
+  // drag & drop
+  let drag=null;
+  el.querySelectorAll(".who,.post").forEach(n=>{ n.addEventListener("dragstart",e=>{ drag={k:n.dataset.k,from:n.dataset.d?+n.dataset.d:null}; e.dataTransfer.effectAllowed="move"; try{ e.dataTransfer.setData("text/plain",n.dataset.k); }catch(_){} n.classList.add("ghost"); }); n.addEventListener("dragend",()=>n.classList.remove("ghost")); });
+  el.querySelectorAll(".cell").forEach(c=>{ c.addEventListener("dragover",e=>{ if(drag&&drag.k===c.dataset.k){ e.preventDefault(); c.classList.add("over"); } }); c.addEventListener("dragleave",()=>c.classList.remove("over"));
+    c.addEventListener("drop",e=>{ e.preventDefault(); c.classList.remove("over"); if(!drag||drag.k!==c.dataset.k) return; const d=data.find(x=>x.key===c.dataset.k); const day=+c.dataset.d; let ds=datesOf(d); if(drag.from!=null) ds=ds.filter(x=>x!==drag.from); if(!ds.includes(day)) ds.push(day); setDates(d,ds); drag=null; });
+    c.addEventListener("click",e=>{ if(e.target.closest(".post")){ const d=data.find(x=>x.key===c.dataset.k); setDates(d,datesOf(d).filter(x=>x!==+c.dataset.d)); return; } if(SC_SEL===c.dataset.k){ const d=data.find(x=>x.key===c.dataset.k); const ds=datesOf(d); if(!ds.includes(+c.dataset.d)){ ds.push(+c.dataset.d); setDates(d,ds); } } }); });
+  el.querySelectorAll(".who").forEach(w=>w.addEventListener("click",()=>{ SC_SEL=SC_SEL===w.dataset.k?null:w.dataset.k; el.querySelectorAll(".who").forEach(x=>x.classList.toggle("sel",x.dataset.k===SC_SEL)); if(SC_SEL) toast("แตะช่องวันเพื่อวาง "+(data.find(x=>x.key===SC_SEL)||{}).name); }));
+}
+function setDates(d,ds){ if(!reviewer){ askName(()=>setDates(d,ds)); return; } ds=[...new Set(ds)].sort((a,b)=>a-b); const id=rid(d); const prev=reviews[id]; reviews[id]=Object.assign({},prev,{dates:ds.join(",")}); render(); logEv("dates",d.name+" → "+(ds.join(",")||"-"));
+  api("setDates",[{key:id,name:d.name,dates:ds.join(","),by:reviewer}]).then(()=>toast(`${d.name}: ${ds.length?ds.map(x=>x+" พ.ย.").join(", "):"ไม่มีวัน"}`)).catch(err=>{ reviews[id]=prev; render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); }
+/* MIDI วางวันให้: ใส่วันตามระยะ + ช่วงที่แนะนำ กระจายไม่ให้วันเดียวแน่น */
+function autoDates(all){ const load={}; all.forEach(d=>datesOf(d).forEach(x=>load[x]=(load[x]||0)+1)); const out=[];
+  const pickDay=(days)=>{ let best=days[0], bl=Infinity; days.forEach(x=>{ const l=(load[x]||0)-(TL_W[x]||1)*0.5; if(l<bl){ bl=l; best=x; } }); load[best]=(load[best]||0)+1; return best; };
+  all.filter(d=>!datesOf(d).length).sort((a,b)=>(b.f||0)-(a.f||0)).forEach(d=>{ const ph=phasesOf(d); const ds=[]; const txt=d.name+" "+d.cat; const f=d.f||0;
+    if(ph.includes("1")) ds.push(d.artist||f>=1e6?8:pickDay([6,7,9,10,11,12]));
+    if(ph.includes("2")) ds.push(pickDay([15,16,17,18,19,13,14]));
+    if(ph.includes("3")) ds.push(d.artist||f>=3e5?pickDay([27,28,29]):/แฟชั่น|fashion|สตรีท|street|เต้น|dance|ศิลปะ|art/i.test(txt)?pickDay([20,21,22]):pickDay([23,24,25,26,21,22]));
+    if(!ph.length) ds.push(pickDay([15,16,17,18,19,20,21,22]));
+    out.push({key:rid(d),name:d.name,dates:[...new Set(ds)].sort((a,b)=>a-b).join(","),by:reviewer}); });
+  return out; }
+$("#sc-auto").onclick=()=>{ if(!reviewer){ askName(()=>$("#sc-auto").onclick()); return; } const list=autoDates(teamList([...data].sort((a,b)=>(b.f||0)-(a.f||0))).all); if(!list.length){ toast("ทุกคนมีวันแล้ว"); return; } const prev={}; list.forEach(r=>{ prev[r.key]=reviews[r.key]; reviews[r.key]=Object.assign({},reviews[r.key],{dates:r.dates}); }); render(); logEv("auto-dates",list.length);
+  api("setDatesMany",[list]).then(()=>toast(`วางวันให้ ${list.length} คนแล้ว — ลากขยับได้เลย`)).catch(err=>{ Object.assign(reviews,prev); render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); };
+$("#sc-clear").onclick=()=>{ if(!reviewer){ askName(()=>$("#sc-clear").onclick()); return; } if(!confirm("ล้างวันโพสต์ของทุกคน?")) return; const list=data.filter(d=>datesOf(d).length).map(d=>({key:rid(d),name:d.name,dates:"",by:reviewer})); list.forEach(r=>{ reviews[r.key]=Object.assign({},reviews[r.key],{dates:""}); }); render(); api("setDatesMany",[list]).then(()=>toast("ล้างแล้ว")).catch(()=>{ load(); }); };
 function openCard(d){ const R=reviews[rid(d)]||{}, rv=rvOf(d), ph=phasesOf(d), t=TIERS.find(x=>x.k===d.tier); const rank=[...data].sort((a,b)=>(b.f||0)-(a.f||0)).indexOf(d)+1; const hs=histLine(d);
   $("#kcard").innerHTML=`<button class="kc-x" type="button" id="kc-x" aria-label="ปิด">×</button><div class="kc-top">${avatarEl(d)}<div><h3>${esc(d.name)}</h3><div class="ct">${esc(d.cat||"—")}</div>${codeLabel(d.code)?`<span class="badge code${codeSoft(d.code)?" soft":""}">${esc(codeLabel(d.code))}</span>`:""}${d.artist?` <span class="badge art">ARTIST</span>`:""}</div></div>
   <div class="kc-bd"><div class="kc-k"><div><div class="l">ผู้ติดตาม</div><div class="v">${fmtN(d.f)}</div></div><div><div class="l">ระดับ</div><div class="v">${t?t.n:"—"}</div></div><div><div class="l">อันดับ reach</div><div class="v">#${rank}</div></div></div>

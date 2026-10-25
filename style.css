@@ -338,3 +338,39 @@ body.present .rv-lbl{display:inline-block}
 .why-chips span.when{background:color-mix(in srgb,var(--ph) 12%,var(--paper));border-color:color-mix(in srgb,var(--ph) 45%,var(--line));color:var(--ink);font-weight:600}
 .why-chips span.mv{color:var(--mute);border-style:dashed}
 .phases.ai .ph .wl span.sub{color:var(--mute);font-size:11px;font-weight:500}
+
+/* ===== schedule board ===== */
+.sc-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:14px}
+.sc-sum{margin:6px 0 0;font-size:12px;color:var(--mute)}
+.sc-wrap{padding:0;overflow:auto;max-height:78vh}
+.sc{display:grid;grid-template-columns:220px repeat(24,minmax(40px,1fr));min-width:1180px;font-size:12px}
+.sc>div{border-bottom:1px solid var(--line);border-right:1px solid color-mix(in srgb,var(--line) 60%,transparent);min-height:34px}
+.sc .hd{position:sticky;top:0;z-index:3;background:var(--paper);border-bottom:2px solid var(--line);padding:6px 4px 4px;text-align:center;font-family:var(--display);font-weight:700;font-size:12px;line-height:1.15}
+.sc .hd small{display:block;font-weight:500;color:var(--mute);font-size:10px}
+.sc .hd.we{background:color-mix(in srgb,var(--brand) 6%,var(--paper))}
+.sc .hd.ph1{box-shadow:inset 0 3px 0 #6f6f75}.sc .hd.ph2{box-shadow:inset 0 3px 0 #f05a85}.sc .hd.ph3{box-shadow:inset 0 3px 0 #e8194c}
+.sc .hd .ev{display:block;font-size:9px;color:var(--brand);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc .corner{position:sticky;left:0;top:0;z-index:4;background:var(--paper);padding:8px 12px;font-family:var(--display);font-weight:700;border-bottom:2px solid var(--line)}
+.sc .tot{position:sticky;top:46px;z-index:3;background:var(--bg);text-align:center;padding:4px 2px;font-family:var(--display);font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.sc .tot small{display:block;font-weight:500;color:var(--mute);font-size:9px}
+.sc .tot.lo{color:var(--mute)}.sc .tot.hi{color:var(--brand)}
+.sc .tot .rec{display:block;height:4px;border-radius:2px;background:var(--track);margin:3px 4px 0;overflow:hidden}.sc .tot .rec i{display:block;height:100%;background:var(--brand);opacity:.6}
+.sc .totl{position:sticky;left:0;top:46px;z-index:4;background:var(--bg);padding:6px 12px;font-size:11px;color:var(--mute)}
+.sc .grp{grid-column:1/-1;background:var(--bg);padding:5px 12px;font-family:var(--display);font-weight:700;font-size:12px;color:var(--ink2);position:sticky;left:0;border-left:4px solid var(--ph)}
+.sc .who{position:sticky;left:0;z-index:2;background:var(--paper);display:flex;align-items:center;gap:8px;padding:4px 10px;cursor:grab;border-right:2px solid var(--line)}
+.sc .who:active{cursor:grabbing}
+.sc .who .av{width:28px;height:28px;box-shadow:none}.sc .who .av-txt{font-size:11px}
+.sc .who .nm{font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sc .who .f{font-size:10px;color:var(--mute)}
+.sc .who.sel{background:color-mix(in srgb,var(--brand) 10%,var(--paper));outline:2px solid var(--brand);outline-offset:-2px}
+.sc .who .n{margin-left:auto;font-family:var(--display);font-size:10px;color:var(--mute)}
+.sc .cell{position:relative;display:grid;place-items:center;transition:background .12s}
+.sc .cell.we{background:color-mix(in srgb,var(--brand) 3%,transparent)}
+.sc .cell.over{background:color-mix(in srgb,var(--brand) 18%,var(--paper))}
+.sc .cell.rec{box-shadow:inset 0 -3px 0 color-mix(in srgb,var(--ph) 40%,transparent)}
+.sc .post{width:26px;height:26px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 2px var(--paper),0 0 0 3.5px var(--ph);cursor:grab;position:relative;background:var(--track)}
+.sc .post img{width:100%;height:100%;object-fit:cover;display:block}
+.sc .post .x{position:absolute;inset:0;display:none;place-items:center;background:rgba(43,43,46,.75);color:#fff;font-weight:700;font-size:14px}
+.sc .post:hover .x{display:grid}
+.sc .ghost{opacity:.35}
+.sc .cell.sug::after{content:"+";position:absolute;inset:0;display:grid;place-items:center;color:var(--line);font-size:16px;font-weight:700;pointer-events:none}
+body.present .sc-head .ai-acts{display:none}

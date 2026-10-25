@@ -6,7 +6,7 @@
 <title>KOL Approval Board — MIDI digital</title>
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 <div class="prog" id="prog"><i></i></div>
@@ -24,6 +24,7 @@
   <button type="button" class="tab active" data-tab="review">✓ พิจารณา <b id="t-review">0</b></button>
   <button type="button" class="tab" data-tab="team">★ ทีม <span id="t-target">50</span> คน <b id="t-team">0/50</b></button>
   <button type="button" class="tab" data-tab="plan">📅 แผน 3 ระยะ <b id="t-plan">0</b></button>
+  <button type="button" class="tab" data-tab="sched">🗓 ตารางโพสต์ <b id="t-sched">0</b></button>
 </nav></header>
 
 <main class="wrap">
@@ -113,6 +114,11 @@
     </div>
   </div><!-- /plan -->
 
+  <div class="page" data-page="sched" hidden>
+    <section class="box sc-head"><div><h2>ตารางโพสต์ 6–29 พ.ย. <span class="h-sub">ลากรูป KOL ไปวางในช่องวัน · วางได้หลายวันต่อคน · กด × เอาออก · มือถือ: แตะชื่อแล้วแตะวัน</span></h2><p class="sc-sum" id="sc-sum"></p></div><div class="ai-acts"><button class="btn primary" type="button" id="sc-auto">✨ MIDI วางวันให้ (เฉพาะคนที่ยังไม่มีวัน)</button><button class="btn" type="button" id="sc-clear">ล้างวันทั้งหมด</button></div></section>
+    <section class="box sc-wrap"><div class="sc" id="sc"></div></section>
+  </div><!-- /sched -->
+
   <div class="foot">
     <span>ข้อมูลอัปเดตอัตโนมัติทุก 30 วินาที · ผลพิจารณาบันทึกทันทีที่กด · ระบบบันทึกการใช้งานเพื่อติดตามการพิจารณา</span><span style="margin-left:auto;font-family:var(--display);color:var(--ink2)">MIDI digital Co., Ltd.</span>
   </div>
@@ -134,6 +140,6 @@
 <div class="toast" id="toast" hidden></div>
 
 <script src="config.js?v=1"></script>
-<script src="app.js?v=11"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>
