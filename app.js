@@ -47,6 +47,9 @@ let AV={}; fetch("avatars/map.json?v="+Date.now()).then(r=>r.json()).then(m=>{ A
 const normName=s=>String(s||"").normalize("NFC").toLowerCase().replace(/[^a-z0-9ก-๙]/g,"");
 function avatarEl(d){ const f=AV[normName(d.name)]; const ini=esc(String(d.name||"?").trim().replace(/^[^a-zA-Zก-๙0-9]+/,"").slice(0,1).toUpperCase()||"?");
   return f?`<div class="av"><img src="avatars/${f}" alt="" loading="lazy" width="40" height="40"></div>`:`<div class="av av-txt">${ini}</div>`; }
+/* ป้าย Code ที่แสดงบนหน้า: ชื่อที่โชว์ (ค่าว่าง = ไม่โชว์) */
+const CODE_LABEL={ PANU:"P'PANU Recommend", BEE:"" };
+const codeLabel=c=>c?(c in CODE_LABEL?CODE_LABEL[c]:c):"";
 let REASONS=["ไม่ตรงสาย / กลุ่มเป้าหมาย","ภาพลักษณ์ยังไม่เหมาะ","ยอดผู้ติดตามน้อยเกินไป","คอนเทนต์ไม่น่าสนใจ","เคยรับงานแล้วทิ้ง"];
 let history={};
 const rid=d=>"r_"+hash(d.key);
@@ -70,8 +73,8 @@ function render(){
   $("#rev-l").textContent=`รอพิจารณา ${nw} คน · reach ที่ผ่านแล้ว ${fmtN(data.filter(d=>rvOf(d)==="pass").reduce((s,d)=>s+(d.f||0),0))}`+(upd.length?` · อัปเดตใหม่ ${upd.length}`:"");
   $("#rvchips").innerHTML=[["","ทั้งหมด",data.length],["pass","ผ่าน",np],["fail","ไม่ผ่าน",nf],["wait","รอพิจารณา",nw]].map(([k,l,n])=>`<button type="button" class="chip${filterRv===k?" active":""}" data-k="${k}">${l} <b>${n}</b></button>`).join("");
   $("#rvchips").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{filterRv=b.dataset.k;logEv("filter","rv:"+(b.dataset.k||"all"));render();});
-  const codes=[...new Set(data.map(d=>d.code).filter(Boolean))].sort(); const cc=$("#codechips"); cc.hidden=!codes.length;
-  cc.innerHTML=codes.length?[["","ทุก Code",data.length]].concat(codes.map(c=>[c,c,data.filter(d=>d.code===c).length])).map(([k,l,n])=>`<button type="button" class="chip code${filterCode===k?" active":""}" data-k="${esc(k)}">${esc(l)} <b>${n}</b></button>`).join(""):"";
+  const codes=[...new Set(data.map(d=>d.code).filter(c=>codeLabel(c)))].sort(); const cc=$("#codechips"); cc.hidden=!codes.length;
+  cc.innerHTML=codes.length?[["","ทุก Code",data.length]].concat(codes.map(c=>[c,codeLabel(c),data.filter(d=>d.code===c).length])).map(([k,l,n])=>`<button type="button" class="chip code${filterCode===k?" active":""}" data-k="${esc(k)}">${esc(l)} <b>${n}</b></button>`).join(""):"";
   cc.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{filterCode=b.dataset.k;logEv("filter","code:"+(b.dataset.k||"all"));render();});
   // share by tier
   const sh=$("#share"); sh.innerHTML=""; const lbl=[];
@@ -104,7 +107,7 @@ function rowEl(d,rankOf,reach,max,isNew){
     const st=statusOf(d), rk=rankOf.get(d), rv=rvOf(d), R=reviews[rid(d)]||{}; const row=document.createElement("div"); row.className="row"+(st?" "+st:"")+(rv?" "+rv:"")+(isNew?" sugnew":"");
     const nm=d.url?`<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.name)}</a>`:esc(d.name);
     row.innerHTML=`<div class="rk${rk<=10?" lead":""}">${d.sug?"★":rk}</div>
-      <div class="who">${avatarEl(d)}<div class="who-t"><div class="nm">${nm}${d.code?`<span class="badge code" title="Code: ${esc(d.code)}">${esc(d.code)}</span>`:""}${d.artist?`<span class="badge art">ARTIST</span>`:""}${d.sug?`<span class="badge sug" title="เพิ่มโดย ${esc(d.by)}">เพิ่มใหม่ · ${esc(d.by||"ลูกค้า")}</span>`:""}${st?`<span class="badge ${st}">${st==="new"?"NEW":"EDIT"}</span>`:""}</div><div class="ct" title="${esc(d.cat)}">${esc(d.cat||"—")}</div></div></div>
+      <div class="who">${avatarEl(d)}<div class="who-t"><div class="nm">${nm}${codeLabel(d.code)?`<span class="badge code" title="Code: ${esc(d.code)}">${esc(codeLabel(d.code))}</span>`:""}${d.artist?`<span class="badge art">ARTIST</span>`:""}${d.sug?`<span class="badge sug" title="เพิ่มโดย ${esc(d.by)}">เพิ่มใหม่ · ${esc(d.by||"ลูกค้า")}</span>`:""}${st?`<span class="badge ${st}">${st==="new"?"NEW":"EDIT"}</span>`:""}</div><div class="ct" title="${esc(d.cat)}">${esc(d.cat||"—")}</div></div></div>
       <div class="trk" title="${fmtN(d.f)} ผู้ติดตาม"><div class="fill" style="width:${(widthOf(d.f,max)*100).toFixed(2)}%;background:${heat(d.f)}"></div></div>
       <div class="val">${fmtN(d.f)}<small>${d.f?Math.round(d.f/reach*1000)/10+"% ของ reach":"ไม่ระบุ"}</small></div>
       <div class="rvw"><div class="rv" title="ติ๊กผลพิจารณา"><button type="button" class="pass${rv==="pass"?" on":""}" data-s="pass">✓ ผ่าน</button><button type="button" class="fail${rv==="fail"?" on":""}" data-s="fail">✗ ไม่ผ่าน</button></div>${rv&&R.by?`<div class="meta" title="${esc((R.by||"")+(R.reason?" · "+R.reason:""))}"><b>${rv==="fail"?"✗":"✓"} ${esc(R.by)}</b>${R.reason?` · ${esc(R.reason)}`:""}</div>`:""}${histLine(d)?`<div class="meta" title="${esc(histLine(d))}">${esc(histLine(d))}</div>`:""}</div>`;
