@@ -12,9 +12,13 @@ const $=s=>document.querySelector(s);
 const APP_URL=(window.KOL_CONFIG&&window.KOL_CONFIG.APP_URL)||"";
 const TARGET=Number(window.KOL_CONFIG&&window.KOL_CONFIG.TARGET)||50;
 const PHASES=(window.KOL_CONFIG&&window.KOL_CONFIG.PHASES)||[
-  {n:"1",title:"โปรโมทก่อนงาน",d:"6–13 พ.ย. 2569",goal:"Awareness — Teaser เชิญชวน วันจัดงาน สถานที่ ไฮไลต์ Hashtag กลาง",c:"#6f6f75"},
-  {n:"2",title:"สร้างความสนใจ",d:"13–19 พ.ย. 2569",goal:"Consideration — ไฮไลต์กิจกรรม เส้นทางเที่ยว จุดเช็กอิน แผนทริปตัวอย่าง นับถอยหลัง",c:"#f05a85"},
-  {n:"3",title:"ระหว่างงาน",d:"20–29 พ.ย. 2569",goal:"Conversion — รีวิวประสบการณ์จริง บรรยากาศงาน จุดเช็กอิน ข้อมูลการเดินทาง",c:"#e8194c"}];
+  {n:"1",title:"Build Festival Desire",d:"6–13 พ.ย. 2569 · Awareness",goal:"Teaser \"SAVE THE DATE 20–29 พ.ย.\" · Reel #น่าลงทุน #น่าเที่ยว #น่าอยู่ · ต่อยอดงานบุกสยาม 8 พ.ย. · Caravan 3 เส้นทาง · ลานย่าโม / Korat Neighborhood",brief:"โพสต์เชิญชวน + วันจัดงาน + 3 ประสบการณ์ (K-STREET / K-SOUNDER / K-EXPO) ใช้ Hashtag กลาง",c:"#6f6f75"},
+  {n:"2",title:"Drive Attendance",d:"13–19 พ.ย. 2569 · Consideration",goal:"Vlog \"โคราชหนึ่งวัน\" เลือก 4 จุดจาก 4 Pillars (งานออกแบบ → Local Food → Street Art → Creative Space) จบด้วยแผนที่ตามรอย · Guide จุดจอดรถ/ร้านอาหาร · Line-up สายเต้น/เพลง/ช้อป/กิน · นับถอยหลัง",brief:"ช่วยคนกรุงเทพฯ/ปริมณฑลวางแผนทริป — เส้นทาง ที่พัก ที่จอดรถ แล้วชวนเพื่อนมาเทศกาล",c:"#f05a85"},
+  {n:"3",title:"Festival Experience",d:"20–29 พ.ย. 2569 · Conversion",goal:"20–22 เปิดเมือง K-Street/K-Sounder · 23–26 จุดกิจกรรม 7 จุดช่วงเย็น · 27 เปิดงานทางการ · 27–29 K-BATx Expo / K-Battle รอบชิง / Jennifer Kim × Orchestra · เช็กอิน 7 จุดผ่าน LINE",brief:"รีวิว Street Food & Street Fashion \"กินของใหม่ ใส่ของเท่\" จบด้วยพิกัดบูธ/ร้านจริง · Highlight รายวัน · Live",c:"#e8194c"}];
+const HASHTAGS="#อวดเมืองโคราช #อวดเมือง2569 #KBattle2026 #น่าลงทุน #น่าเที่ยว #น่าอยู่";
+const KOL_REACH_TARGET=5e6, KOL_VISIT_TARGET=50000; /* เด็ค: TikTok/IG Mega 3–5 + Micro 50+ → Reach ~5M × 1% = 50,000 คน (1 ใน 4 ของเป้า 200,000) */
+const TOR_MICRO_MIN=30, TOR_NANO_MIN=20; /* TOR 6.3.4(3): Micro 5,000+ ≥30 คน · Nano 1,000+ ≥20 คน รวม ≥50 */
+const torTier=d=>(d.f||0)>=5000?"micro":(d.f||0)>=1000?"nano":"below";
 function api(name,args){ if(!APP_URL) return Promise.reject(new Error("ยังไม่ได้ตั้งค่า APP_URL ใน config.js"));
   return fetch(APP_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({name,args:args||[]}),redirect:"follow"})
     .then(r=>r.json()).then(j=>{ if(j&&j.error) throw new Error(j.error); return j&&("result" in j)?j.result:j; }); }
@@ -130,7 +134,9 @@ function renderTeam(sorted,reachAll){
   $("#tp-line").textContent=np>=TARGET?`ครบ ${TARGET} คนแล้ว${spare.length?` · สำรองอีก ${spare.length} คน`:""}`:`ผ่านแล้ว ${np} · เหลืออีก ${need} ช่อง · รอพิจารณา ${candidates-np} คน`;
   const w=$("#tp-warn"); if(short>0){ w.hidden=false; w.className="tp-warn"; w.textContent=`⚠ ไม่ผ่าน ${fails.length} คน — ถึงที่เหลือผ่านหมดก็ยังขาด ${short} คน ทีมงานกำลังหา KOL เพิ่ม`; } else if(np>=TARGET){ w.hidden=false; w.className="tp-warn ok"; w.textContent="✓ ทีมครบตามเป้า"; } else if(fails.length){ w.hidden=false; w.className="tp-warn ok"; w.textContent=`ไม่ผ่าน ${fails.length} คน · ผู้สมัครที่เหลือยังพอครบ ${TARGET} (เผื่อได้อีก ${candidates-TARGET} คน)`; } else w.hidden=true;
   const reach=team.reduce((s,d)=>s+(d.f||0),0);
-  $("#tp-stats").innerHTML=`<div><div class="l">Reach ของทีม</div><div class="v">${fmtN(reach)}</div></div><div><div class="l">จากผู้สมัครทั้งหมด</div><div class="v">${reachAll?Math.round(reach/reachAll*100):0}%</div></div><div><div class="l">หมวดที่ครอบคลุม</div><div class="v">${new Set(team.flatMap(catsOf)).size}/${CATS.length}</div></div>`;
+  $("#tp-stats").innerHTML=`<div><div class="l">Reach ของทีม</div><div class="v">${fmtN(reach)}</div></div><div><div class="l">เป้า reach KOL (แผน)</div><div class="v${reach>=KOL_REACH_TARGET?" ok":""}">${Math.round(reach/KOL_REACH_TARGET*100)}%<small> / 5M</small></div></div><div><div class="l">คาดคนเข้างานจาก KOL (1%)</div><div class="v">${fmtN(Math.round(reach*0.01))}<small> / 50K</small></div></div>`;
+  const mic=team.filter(d=>torTier(d)==="micro").length, nan=team.filter(d=>torTier(d)==="nano").length, below=team.filter(d=>torTier(d)==="below").length;
+  const torEl=$("#tor"); torEl.innerHTML=`<span class="lb">เงื่อนไข TOR 6.3.4(3)</span><span class="${mic>=TOR_MICRO_MIN?"ok":"bad"}">Micro (5,000+ ผู้ติดตาม) <b>${mic}</b> / ≥${TOR_MICRO_MIN}</span><span class="${nan>=TOR_NANO_MIN?"ok":"bad"}">Nano (1,000–4,999) <b>${nan}</b> / ≥${TOR_NANO_MIN}</span>${below?`<span class="bad">ต่ำกว่า 1,000: ${below} คน (ไม่นับ)</span>`:""}<span class="hint">${nan<TOR_NANO_MIN?`ต้องหา Nano เพิ่มอีก ${TOR_NANO_MIN-nan} คน ถึงจะครบเงื่อนไข`:"ครบตามเงื่อนไข ✓"}</span>`;
   const slots=$("#slots"); slots.innerHTML="";
   for(let i=0;i<TARGET;i++){ const d=team[i]; const el=document.createElement("div");
     if(!d){ el.className="slot empty"; el.textContent=i+1; }
@@ -150,7 +156,7 @@ function renderPlan(sorted){
   const passed=sorted.filter(d=>rvOf(d)==="pass");
   $("#phases").innerHTML=PHASES.map(p=>{ const list=passed.filter(d=>phasesOf(d).includes(p.n)); const reach=list.reduce((s,d)=>s+(d.f||0),0);
     const faces=list.slice(0,14).map(d=>{ const s=avSrc(d); return s?`<img src="${s}" alt="" title="${esc(d.name)}" data-k="${esc(d.key)}">`:`<span class="f" title="${esc(d.name)}" data-k="${esc(d.key)}">${iniOf(d)}</span>`; }).join("")+(list.length>14?`<span class="f more">+${list.length-14}</span>`:"");
-    return `<div class="ph" style="--ph:${p.c}"><div class="num">ระยะที่ ${p.n}</div><h3>${esc(p.title)}</h3><div class="d">${esc(p.d)}</div><div class="g">${esc(p.goal)}</div><div class="kpi"><div><b>${list.length}</b>KOL</div><div><b>${fmtN(reach)}</b>reach</div></div><div class="faces">${list.length?faces:`<div class="empty-p">ยังไม่มี KOL ในระยะนี้ — เลือกจากรายชื่อด้านล่าง</div>`}</div></div>`; }).join("");
+    return `<div class="ph" style="--ph:${p.c}"><div class="num">ระยะที่ ${p.n}</div><h3>${esc(p.title)}</h3><div class="d">${esc(p.d)}</div><div class="g">${esc(p.goal)}</div><div class="brief">📝 ${esc(p.brief||"")}</div><div class="kpi"><div><b>${list.length}</b>KOL</div><div><b>${fmtN(reach)}</b>reach</div></div><div class="faces">${list.length?faces:`<div class="empty-p">ยังไม่มี KOL ในระยะนี้ — เลือกจากรายชื่อด้านล่าง</div>`}</div></div>`; }).join("");
   $("#phases").querySelectorAll("[data-k]").forEach(el=>el.onclick=()=>{ const d=data.find(x=>x.key===el.dataset.k); if(d) openCard(d); });
   const unset=passed.filter(d=>!phasesOf(d).length).length; const byz=[...new Set(passed.map(d=>(reviews[rid(d)]||{}).phaseBy).filter(Boolean))]; $("#plan-who").textContent=byz.length?"จัดโดย: "+byz.join(", "):"";
   const list=$("#plan-list"); if(!passed.length){ list.innerHTML=`<div class="empty">ยังไม่มี KOL ที่ผ่าน — ติ๊ก "ผ่าน" ในหน้าพิจารณาก่อน แล้วค่อยจัดลงระยะ</div>`; return; }
@@ -164,15 +170,16 @@ function aiPlan(passed){
   const total=passed.reduce((s,d)=>s+(d.f||0),0); const out=new Map();
   passed.forEach(d=>{ const sc=[0,0,0], why=[[],[],[]]; const txt=(d.name+" "+d.cat); const f=d.f||0;
     const add=(i,n,w)=>{ sc[i]+=n; why[i].push(w); };
-    if(d.artist){ add(0,4,"ศิลปิน — ทำ Teaser เปิดตัวแคมเปญ"); if(/สามารถ.{0,12}ร่วมงาน|วันเปิดงาน/.test(d.cat||"")) add(2,5,"ระบุว่ามาร่วมงานได้ (วันเปิดงาน) — ใช้ช่วงระหว่างงาน"); }
-    if(f>=1e6) add(0,3,"Mega "+fmtN(f)+" — เปิดการรับรู้วงกว้าง"); else if(f>=3e5) add(0,2,"Macro "+fmtN(f)+" — reach สูง เหมาะช่วงเปิดตัว"); else if(f>=1e5) add(1,1,"Macro ระดับกลาง — ชวนวางแผนทริป");
-    if(LOCAL_RE.test(txt)){ add(2,3,"บัญชีท้องถิ่นโคราช — รีวิวหน้างาน/จุดเช็กอินได้จริง"); add(1,1,"รู้จักพื้นที่ — แนะนำเส้นทางได้"); }
-    if(/ท่องเที่ยว|travel|ทริป|เที่ยว/i.test(d.cat||d.group)){ add(1,2,"สายท่องเที่ยว — เส้นทาง/แผนทริปตัวอย่าง"); if(f>=1.5e5) add(0,1,"ท่องเที่ยวยอดสูง — ชวนคนต่างจังหวัดมาโคราช"); }
-    if(/คาเฟ่|cafe/i.test(d.cat)) add(1,1,"คาเฟ่ — จุดเช็กอินช่วงวางแผน");
-    if(/กิน|อาหาร|อร่อย|food|ร้าน/i.test(d.cat)) add(2,2,"สายกิน — รีวิวร้านช่วงงานกระตุ้นให้มาจริง");
-    if(/ที่พัก|โรงแรม|hotel/i.test(d.cat)) add(1,2,"ที่พัก — ช่วยตัดสินใจค้างคืน");
-    if(/คอมมูนิตี้|community/i.test(d.cat)) add(1,2,"บัญชีคอมมูนิตี้ — กระจายข้อมูลกิจกรรม");
-    if(f<5e4&&!d.artist) add(2,1,"Micro/Nano — คอนเทนต์หน้างานจริงดูน่าเชื่อถือ");
+    if(d.artist){ add(0,4,"ศิลปิน — Teaser \"SAVE THE DATE\" เปิดตัวแคมเปญ ฐานแฟนกรุงเทพฯ ต่อยอดงานบุกสยาม 8 พ.ย."); if(/สามารถ.{0,12}ร่วมงาน|วันเปิดงาน/.test(d.cat||"")) add(2,5,"ระบุว่ามาร่วมงานได้วันเปิดงาน 27 พ.ย. — ลงช่วง 27–29 (เปิดงานทางการ / K-Battle รอบชิง)"); }
+    if(f>=1e6) add(0,3,"Mega "+fmtN(f)+" — เปิดการรับรู้วงกว้าง (เป้า reach KOL รวม 5M)"); else if(f>=3e5) add(0,2,"Macro "+fmtN(f)+" — reach สูง เหมาะช่วงเปิดตัว"); else if(f>=1e5) add(1,1,"Macro ระดับกลาง — Vlog \"โคราชหนึ่งวัน\" ชวนวางแผนทริป");
+    if(LOCAL_RE.test(txt)){ add(2,3,"บัญชีท้องถิ่นโคราช — เช็กอิน 7 จุด / Highlight รายวัน ช่วง 23–26 (จุดกิจกรรมในเมืองช่วงเย็น)"); add(1,1,"รู้จักพื้นที่ — Guide จุดจอดรถ/ร้านอาหาร/เส้นทาง Caravan"); }
+    if(/ท่องเที่ยว|travel|ทริป|เที่ยว/i.test(d.cat||d.group)){ add(1,2,"สายท่องเที่ยว — Vlog 4 จุด 4 Pillars จบด้วยแผนที่ตามรอย"); if(f>=1.5e5) add(0,1,"ท่องเที่ยวยอดสูง — ชวนคนกรุงเทพฯ/ปริมณฑล (Segment 2) มาโคราช"); }
+    if(/คาเฟ่|cafe/i.test(d.cat)) add(1,1,"คาเฟ่ — Creative Space / จุดเช็กอินช่วงวางแผน");
+    if(/กิน|อาหาร|อร่อย|food|ร้าน/i.test(d.cat)) add(2,2,"สายกิน — รีวิว Street Food \"กินของใหม่ ใส่ของเท่\" จบด้วยพิกัดบูธ");
+    if(/ที่พัก|โรงแรม|hotel/i.test(d.cat)) add(1,2,"ที่พัก — ช่วยตัดสินใจค้างคืน (เป้าน่าเที่ยว 100,000 คน)");
+    if(/คอมมูนิตี้|community/i.test(d.cat)) add(1,2,"บัญชีคอมมูนิตี้ — กระจาย Line-up / กิจกรรม 7 จุด");
+    if(/แฟชั่น|fashion|สตรีท|street|เต้น|dance|ศิลปะ|art|ออกแบบ|design/i.test(txt)) { add(2,3,"สาย Street/Fashion/Art — ตรง K-STREET และ Street Fashion ช่วง 20–22 เปิดเมือง"); add(1,1,"Street Art / งานออกแบบ — 1 ใน 4 Pillars ของ Vlog"); }
+    if(f<5e4&&!d.artist) add(2,1,"Micro/Nano — คอนเทนต์หน้างานจริง + ลิงก์/QR รายคนแลกสิทธิ์หน้างาน");
     if(!sc.some(Boolean)) add(1,1,"ทั่วไป — ใส่ช่วงกลางเพื่อเสริมความถี่");
     out.set(d.key,{d,sc,why}); });
   // assign primary = argmax; balance by reach share (target ≈ 32/30/38 %)
@@ -181,6 +188,7 @@ function aiPlan(passed){
   order.forEach(d=>{ const o=out.get(d.key); const ranked=[0,1,2].sort((i,j)=>o.sc[j]-o.sc[i]||sum[i]-sum[j]); let i=ranked[0];
     if(sum[i]+(d.f||0)>target[i]*1.25 && o.sc[ranked[1]]>=o.sc[i]-2){ i=ranked[1]; o.why[i].push("ย้ายมาระยะนี้เพื่อบาลานซ์ reach ระหว่างระยะ"); }
     const ph=[String(i+1)]; const j=ranked.find(k=>k!==i&&o.sc[k]>=4&&o.sc[k]>=o.sc[i]-1); if(j!=null) ph.push(String(j+1));
+    if(ph.includes("3")){ const slot=d.artist||(d.f||0)>=3e5?"27–29 พ.ย. (เปิดงานทางการ / รอบชิง / Jennifer Kim)":/แฟชั่น|fashion|สตรีท|street|เต้น|dance|ศิลปะ|art/i.test(d.name+" "+d.cat)?"20–22 พ.ย. (K-Street & K-Sounder เปิดเมือง)":"23–26 พ.ย. (จุดกิจกรรม 7 จุดช่วงเย็น)"; o.why[2].push("ช่วงที่แนะนำ: "+slot); }
     sum[i]+=(d.f||0); pick[d.key]={d,ph:ph.sort(),whyP:o.why,why:ph.map(p=>o.why[+p-1]).flat().filter((v,k,a)=>a.indexOf(v)===k)}; });
   // guarantee each phase has at least 3 people when possible
   [0,1,2].forEach(i=>{ const have=Object.values(pick).filter(x=>x.ph.includes(String(i+1))).length; if(have<3&&passed.length>=9){ Object.values(pick).sort((a,b)=>out.get(b.d.key).sc[i]-out.get(a.d.key).sc[i]).filter(x=>!x.ph.includes(String(i+1))).slice(0,3-have).forEach(x=>{ x.ph.push(String(i+1)); x.ph.sort(); x.whyP[i].push("เพิ่มให้ระยะที่ "+(i+1)+" มีคนครบขั้นต่ำ"); x.why.push("เพิ่มให้ระยะที่ "+(i+1)+" มีคนครบขั้นต่ำ"); }); } });
@@ -193,9 +201,9 @@ function renderAI(passed){
   const {pick,total}=aiPlan(passed); const rows=Object.values(pick);
   const cnt=[1,2,3].map(n=>rows.filter(x=>x.ph.includes(String(n))).length), sum=[1,2,3].map(n=>rows.filter(x=>x.ph.includes(String(n))).reduce((s,x)=>s+(x.d.f||0),0));
   const diff=rows.filter(x=>{ const cur=phasesOf(x.d).join(","); return cur&&cur!==x.ph.join(","); }).length, unset=rows.filter(x=>!phasesOf(x.d).length).length;
-  $("#ai-sum").innerHTML=`จัด ${rows.length} คน จาก reach รวม ${fmtN(total)} → ระยะ 1 <b>${cnt[0]} คน · ${fmtN(sum[0])}</b> (${Math.round(sum[0]/total*100)}%) · ระยะ 2 <b>${cnt[1]} คน · ${fmtN(sum[1])}</b> (${Math.round(sum[1]/total*100)}%) · ระยะ 3 <b>${cnt[2]} คน · ${fmtN(sum[2])}</b> (${Math.round(sum[2]/total*100)}%)<br>หลักคิด: เปิดตัวด้วยศิลปิน + ยอดสูงสุด → ช่วงกลางให้สายท่องเที่ยว/คาเฟ่/ที่พักช่วยวางแผน → ช่วงงานให้คนท้องถิ่นโคราชและสายกินรีวิวหน้างานจริง · ศิลปินทำให้ระยะ 1 reach สูงสุดโดยธรรมชาติ ส่วนระยะ 2–3 บาลานซ์จำนวนคนและ reach ให้ใกล้เคียงกัน${unset?` · ยังไม่จัดเอง ${unset} คน`:""}${diff?` · ต่างจากที่จัดเองอยู่ ${diff} คน`:""}`;
+  $("#ai-sum").innerHTML=`จัด ${rows.length} คน จาก reach รวม ${fmtN(total)} → ระยะ 1 <b>${cnt[0]} คน · ${fmtN(sum[0])}</b> (${Math.round(sum[0]/total*100)}%) · ระยะ 2 <b>${cnt[1]} คน · ${fmtN(sum[1])}</b> (${Math.round(sum[1]/total*100)}%) · ระยะ 3 <b>${cnt[2]} คน · ${fmtN(sum[2])}</b> (${Math.round(sum[2]/total*100)}%)<br>อิงแผน PR 22 OCT: ระยะ 1 Build Desire (Teaser/Save the date, ต่อยอดบุกสยาม 8 พ.ย.) → ระยะ 2 Drive Attendance (Vlog "โคราชหนึ่งวัน" 4 Pillars, Guide การเดินทาง) → ระยะ 3 Festival Experience (Street Food & Fashion, เช็กอิน 7 จุด, Highlight รายวัน) · ใน ระยะ 3 แนะนำช่วงวันให้ด้วย (20–22 เปิดเมือง / 23–26 จุดกิจกรรมช่วงเย็น / 27–29 เปิดงาน) · เป้า reach KOL รวม 5M → 50,000 คนเข้างาน${unset?` · ยังไม่จัดเอง ${unset} คน`:""}${diff?` · ต่างจากที่จัดเองอยู่ ${diff} คน`:""}`;
   $("#ai-phases").innerHTML=PHASES.map(p=>{ const list=rows.filter(x=>x.ph.includes(p.n)).sort((a,b)=>(b.d.f||0)-(a.d.f||0)); const reach=list.reduce((s,x)=>s+(x.d.f||0),0);
-    return `<div class="ph" style="--ph:${p.c}"><div class="num">ระยะที่ ${p.n}</div><h3>${esc(p.title)}</h3><div class="d">${esc(p.d)}</div><div class="kpi"><div><b>${list.length}</b>KOL</div><div><b>${fmtN(reach)}</b>reach</div></div><div class="who-l">${list.slice(0,8).map(x=>{ const s=avSrc(x.d); return `<div class="wl" data-k="${esc(x.d.key)}">${s?`<img src="${s}" alt="">`:`<span class="f">${iniOf(x.d)}</span>`}<div><b>${esc(x.d.name)}</b><span>${fmtN(x.d.f)} · ${esc((x.whyP[+p.n-1]||[])[0]||x.why[0]||"")}</span></div></div>`; }).join("")}${list.length>8?`<div class="wl"><span class="f">+${list.length-8}</span><div><span>ดูทั้งหมดด้านล่าง</span></div></div>`:""}</div></div>`; }).join("");
+    return `<div class="ph" style="--ph:${p.c}"><div class="num">ระยะที่ ${p.n}</div><h3>${esc(p.title)}</h3><div class="d">${esc(p.d)}</div><div class="brief">📝 ${esc(p.brief||"")}</div><div class="kpi"><div><b>${list.length}</b>KOL</div><div><b>${fmtN(reach)}</b>reach</div></div><div class="who-l">${list.slice(0,8).map(x=>{ const s=avSrc(x.d); return `<div class="wl" data-k="${esc(x.d.key)}">${s?`<img src="${s}" alt="">`:`<span class="f">${iniOf(x.d)}</span>`}<div><b>${esc(x.d.name)}</b><span>${fmtN(x.d.f)} · ${esc((x.whyP[+p.n-1]||[])[0]||x.why[0]||"")}</span></div></div>`; }).join("")}${list.length>8?`<div class="wl"><span class="f">+${list.length-8}</span><div><span>ดูทั้งหมดด้านล่าง</span></div></div>`:""}</div></div>`; }).join("");
   $("#ai-phases").querySelectorAll("[data-k]").forEach(el=>el.onclick=()=>{ const d=data.find(x=>x.key===el.dataset.k); if(d) openCard(d); });
   $("#ai-list").innerHTML=rows.sort((a,b)=>(b.d.f||0)-(a.d.f||0)).map(x=>{ const cur=phasesOf(x.d).join(","); return `<div class="ai-row" data-k="${esc(x.d.key)}">${avatarEl(x.d)}<div><div class="nm">${esc(x.d.name)} <i style="font-style:normal;color:var(--mute);font-weight:500;font-size:12px">${fmtN(x.d.f)}</i>${cur&&cur!==x.ph.join(",")?` <span class="diff">จัดเองไว้: ระยะ ${esc(cur)}</span>`:""}</div><div class="why">${x.why.map(w=>"• "+esc(w)).join(" ")}</div></div><div class="tags">${x.ph.map(p=>`<span style="--ph:${PHASES[+p-1].c}">ระยะ ${p}</span>`).join("")}</div></div>`; }).join("");
   $("#ai-list").querySelectorAll(".ai-row .av,.ai-row .nm").forEach(el=>el.onclick=()=>{ const d=data.find(x=>x.key===el.closest(".ai-row").dataset.k); if(d) openCard(d); });
