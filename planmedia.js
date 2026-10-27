@@ -2,7 +2,7 @@
    ข้อมูลตั้งต้นอยู่ในไฟล์นี้ (PM_ROWS) · ลากแถบเปลี่ยนวันได้ → บันทึกลงชีตแท็บ Posts (key "pm:<id>", แนวคอนเทนต์ = {"s":[m,d],"e":[m,d]}) ทุกคนเห็นเหมือนกัน
    กดแถบ = เลื่อนลงไปหัวข้อรายละเอียดของรายการนั้น · เข้าหน้านี้ต้องใส่รหัส + ชื่อ (จำไว้เฉพาะแท็บที่เปิดอยู่) */
 (function(){ const K=window.KOL; if(!K) return; const {$,esc,setTab,logEv,flushLog}=K;
-const PM_CODE="0000";
+const PM_CODES={"0000":"วันละ 1 ครั้งต่อชื่อ","9999":"ไม่จำกัด"}; /* ตรวจจริงที่หลังบ้าน (server.js: pmLogin) */
 const PM_START=Date.UTC(2026,9,12), PM_DAYS=63; // แสดง 12 ต.ค. – 13 ธ.ค. 2569
 const yOf=m=>m<6?2027:2026;
 const pmIdx=(m,d)=>Math.round((Date.UTC(yOf(m),m-1,d)-PM_START)/864e5);
@@ -166,11 +166,13 @@ function saveContent(id,obj,what){ const it=ITEMS[id]; const prev=(readC(id)||{}
   return jobs.reduce((pr,r)=>pr.then(()=>K.api("setPost",[r])),Promise.resolve()).then(()=>K.toast(!reset?`บันทึก ${obj.t||it.t} แล้ว — ทุกคนเห็นแล้ว`:`คืนเนื้อหา ${it.t} ตามเด็คแล้ว`)).catch(err=>K.toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err))); }
 
 function pmOpenGate(){ const m=$("#pmgate"); $("#pm-code").value=""; $("#pm-name").value=who()||K.reviewer()||""; $("#pm-err").hidden=true; m.hidden=false; setTimeout(()=>$("#pm-code").focus(),50); }
-function pmLogin(){ const code=$("#pm-code").value.trim(), name=$("#pm-name").value.trim();
-  if(code!==PM_CODE){ $("#pm-err").textContent="รหัสไม่ถูกต้อง"; $("#pm-err").hidden=false; $("#pm-code").select(); return; }
-  if(!name){ $("#pm-err").textContent="กรุณาใส่ชื่อ"; $("#pm-err").hidden=false; $("#pm-name").focus(); return; }
-  try{ sessionStorage.setItem("pm_who",name); }catch(e){}
-  $("#pmgate").hidden=true; try{ logEv("pm-login",name); flushLog(); }catch(e){} setTab("pm"); }
+function pmLogin(){ const code=$("#pm-code").value.trim(), name=$("#pm-name").value.trim(); const err=t=>{ $("#pm-err").textContent=t; $("#pm-err").hidden=false; };
+  if(!(code in PM_CODES)){ err("รหัสไม่ถูกต้อง"); $("#pm-code").select(); return; }
+  if(!name){ err("กรุณาใส่ชื่อ"); $("#pm-name").focus(); return; }
+  $("#pm-ok").disabled=true; $("#pm-err").hidden=true;
+  K.api("pmLogin",[{code,name}]).then(r=>{ $("#pm-ok").disabled=false; if(!r||!r.ok){ err(r&&r.reason==="daily"?`รหัสนี้ใช้ล็อกอินได้วันละ 1 ครั้ง — "${name}" เข้าดูไปแล้ววันนี้ (${r.at||""}) ลองใหม่พรุ่งนี้ หรือใช้รหัสแบบไม่จำกัด`:(r&&r.msg)||"รหัสไม่ถูกต้อง"); return; }
+    try{ sessionStorage.setItem("pm_who",name); }catch(e){} $("#pmgate").hidden=true; try{ logEv("pm-login",name+" ["+code+"]"); flushLog(); }catch(e){} setTab("pm"); })
+  .catch(e=>{ $("#pm-ok").disabled=false; err("ตรวจรหัสไม่สำเร็จ: "+(e&&e.message||e)); }); }
 function pmLogout(){ try{ sessionStorage.removeItem("pm_who"); }catch(e){} try{ logEv("pm-logout",""); }catch(e){} setTab("review"); }
 window.openPmGate=pmOpenGate;
 

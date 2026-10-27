@@ -135,6 +135,25 @@ function currentDates_() {
   for (let i = 1; i < vals.length; i++) if (vals[i][0] && String(vals[i][8]||"")) out[String(vals[i][0])] = { name: String(vals[i][1]), dates: String(vals[i][8]) };
   return out;
 }
+/* รหัสเข้า PLAN MEDIA: limit = จำนวนครั้งต่อวันต่อชื่อ (0 = ไม่จำกัด) — บันทึกการเข้าในแท็บ PmLogins */
+const PM_CODES = { "0000": { limit: 1 }, "9999": { limit: 0 } };
+function pmLogin(p) {
+  const code = String(p && p.code || "").trim(), name = String(p && p.name || "").trim().slice(0, 40);
+  const rule = PM_CODES[code]; if (!rule) return { ok:false, msg:"รหัสไม่ถูกต้อง" };
+  if (!name) return { ok:false, msg:"กรุณาใส่ชื่อ" };
+  const lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    const sh = tab_("PmLogins", ["เวลา","วันที่","รหัส","ชื่อ","ผล"]);
+    const today = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd");
+    if (rule.limit > 0) {
+      const vals = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow()-1, 5).getValues() : [];
+      const used = vals.filter(r => String(r[1]) === today && String(r[2]) === code && String(r[3]).toLowerCase() === name.toLowerCase() && String(r[4]) === "ok");
+      if (used.length >= rule.limit) { sh.appendRow([new Date(), today, code, name, "blocked"]); return { ok:false, reason:"daily", at: Utilities.formatDate(new Date(used[0][0]), "Asia/Bangkok", "HH:mm") }; }
+    }
+    sh.appendRow([new Date(), today, code, name, "ok"]);
+    return { ok:true, limit: rule.limit };
+  } finally { lock.releaseLock(); }
+}
 /** คำแนะนำ KOL จากลูกค้า {name,link,f,cat,note,by,vid} */
 function addSuggestion(s) {
   if (!s || !s.name) throw new Error("missing name");
@@ -235,4 +254,4 @@ function setup_() {
   Logger.log("Review sheet: " + sh.getParent().getUrl());
 }
 
-return { getData, setReview, setPhase, setPhases, setDates, setDatesMany, setPost, snapshotDates, listSnapshots, restoreSnapshot, addSuggestion, logEvents };
+return { getData, setReview, setPhase, setPhases, setDates, setDatesMany, setPost, snapshotDates, listSnapshots, restoreSnapshot, pmLogin, addSuggestion, logEvents };

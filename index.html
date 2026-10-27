@@ -156,7 +156,7 @@
 <div class="acts"><button class="btn" id="r-cancel" type="button">ยกเลิก</button><button class="btn primary" id="r-ok" type="button">ตัดออกจากทีม</button></div></div></div>
 <div class="modal" id="pmodal" hidden><div class="card pcard" id="pcard"></div></div>
 <div class="modal" id="umodal" hidden><div class="card" style="max-width:440px"><h3>ย้อนกลับไปเวอร์ชันก่อนหน้า</h3><p>ระบบเก็บสำเนาอัตโนมัติทุกครั้งก่อน "ล้าง" หรือ "ใช้วันที่ MIDI วางไว้" (เก็บล่าสุด 20 ครั้ง) เลือกเวอร์ชันที่จะกู้คืน</p><div class="ulist" id="ulist">กำลังโหลด…</div><div class="acts"><button class="btn" id="u-cancel" type="button">ปิด</button></div></div></div>
-<div class="modal" id="pmgate" hidden><div class="card"><h3>🔒 PLAN MEDIA</h3><p>ใส่รหัส 4 หลัก และชื่อผู้เข้าดู</p>
+<div class="modal" id="pmgate" hidden><div class="card"><h3>🔒 PLAN MEDIA</h3><p>ใส่รหัส 4 หลัก และชื่อผู้เข้าดู (รหัสบางชุดเข้าได้วันละ 1 ครั้งต่อชื่อ)</p>
 <input id="pm-code" type="password" inputmode="numeric" maxlength="4" placeholder="รหัส 4 หลัก" autocomplete="off">
 <input id="pm-name" type="text" maxlength="40" placeholder="ชื่อของคุณ">
 <div class="pm-err" id="pm-err" hidden></div>
@@ -167,6 +167,6 @@
 
 <script src="config.js?v=1"></script>
 <script src="app.js?v=20"></script>
-<script src="planmedia.js?v=5"></script>
+<script src="planmedia.js?v=6"></script>
 </body>
 </html>
