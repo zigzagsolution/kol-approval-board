@@ -541,6 +541,8 @@ body.present .sc-head .ai-acts{display:none}
 .pm-dt{text-align:center;padding-left:8px;line-height:1.1}
 .pm-dt b{display:block;font-family:var(--display);font-size:26px;font-weight:700;color:var(--c)}
 .pm-dt span{display:block;font-size:12px;color:var(--ink2);font-weight:600}
+.pm-dt.nd{min-width:40px}
+.pm-ndl{font-style:normal;color:var(--mute);font-weight:600}
 .pm-dt em{display:block;font-style:normal;font-size:10.5px;color:var(--mute);margin-top:3px}
 .pm-main{min-width:0}
 .pm-k1{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:3px}
