@@ -29,10 +29,10 @@ const PM_ROWS=[
       ["จากลานซ้อมเล็ก ๆ สู่เวที / เสียงคนรุ่นใหม่เป็นจังหวะเมือง","Reel ต้นทาง K-Street (เบื้องหลังนักเต้น) และ K-Sounder (ดนตรีในสวน 24 ต.ค.)"],
       ["จากแบรนด์เล็ก ๆ สู่โอกาสทางธุรกิจ","สัมภาษณ์ 3 Young Entrepreneurs เชื่อมสู่ K-EXPO ให้ Buyer ได้ค้นพบสินค้า"],
       ["ดินด่านเกวียน จะไปได้ไกลกว่าเครื่องปั้นแบบเดิมไหม?","Before–Process–After ในสตูดิโอช่าง/ดีไซเนอร์ ไม่อ้างยอดขายโดยไม่มีหลักฐาน"]]}]},
-  {g:PH,lab:"3 Siam Launch",c:"#7b4bd6",items:[{id:"ph3",ph:3,w:50,t:"Siam Launch",s:[11,8],pg:"10, 34–35",
+  {g:PH,lab:"3 Siam Launch",c:"#7b4bd6",items:[{id:"ph3",ph:3,w:50,t:"Siam Launch",s:[11,12],pg:"10, 34–35",
     sum:"ยกพลัง Street Culture โคราชไปเปิดตัวที่สยาม ชวนคนกรุงเทพฯ มาค้นพบเมือง",
     det:[["Kick off “อวดเมืองโคราช” บุกสยาม","ขยายการรับรู้สู่คนนอกพื้นที่ นำพลัง Street Culture ของโคราชไปสร้างกระแสในกรุงเทพฯ"],["KOL ระยะ 1","ศิลปิน/บัญชี reach สูงลงโพสต์วันเปิดตัว (ดูแท็บแผน 3 ระยะ)"]]}]},
-  {g:PH,lab:"4 Build Festival Desire",c:"#f05a85",items:[{id:"ph4",ph:4,w:40,t:"Build Festival Desire",s:[11,9],e:[11,14],pg:"34–35, 60",
+  {g:PH,lab:"4 Build Festival Desire",c:"#f05a85",items:[{id:"ph4",ph:4,w:40,t:"Build Festival Desire",s:[11,13],e:[11,14],pg:"34–35, 60",
     sum:"ทำให้คนอยากมา ด้วยเสน่ห์ของเมืองและไฮไลต์ K-BATTLE",
     det:[["Reel น่าลงทุน: ทำของเก่งอย่างเดียวพอไหม?","ผลิตภัณฑ์/งานออกแบบจริง → ถามเจ้าของว่าขายความคิดสร้างสรรค์อย่างไร → กระบวนการออกแบบ ผลิต สร้างแบรนด์ → โอกาส Creative Economy"],
       ["Reel น่าอยู่: คนรุ่นใหม่กลับบ้านมาอวดพลังสร้างสรรค์","ตามคนรุ่นใหม่ 1 คน 1 วัน: Creative Space → เพื่อนร่วมอาชีพ → กิจกรรมชุมชน → ทำไมเลือกอยู่ที่นี่"],
@@ -65,7 +65,7 @@ const PM_ROWS=[
     {id:"ev-fest",t:"K-BATTLE · K-Sounder · K-EXPO",s:[11,20],e:[11,29],sum:"เทศกาลหลัก 10 วัน",pg:"10, 34",det:[["ไฮไลต์","20–22 เปิดเมือง K-Street/K-Sounder · 23–26 จุดกิจกรรม 7 จุดช่วงเย็น · 27–29 เปิดงานทางการ K-BATx Expo / รอบชิง / Jennifer Kim"]]}]},
   {g:"อีเวนต์",lab:"เวทีนอกพื้นที่",c:"#7b4bd6",items:[
     {id:"ev-nf",t:"Nation Forum",s:[10,20],sum:"ออกบูธอวดเมืองโคราช + ตัวแทน TCEB ขึ้นเวทีเสวนา",pg:"77",det:[["ใช้ต่อ","คอนเทนต์ “อวดเมืองครั้งนี้ เมืองจะได้อะไรกลับไป?” ใน Build the Story"]]},
-    {id:"ev-siam",alias:"ph3",t:"บุกสยาม",s:[11,8],sum:"Kick off อวดเมืองโคราชที่สยาม (วันเดียวกับระยะ 3 Siam Launch ย้ายอันใดอันหนึ่ง อีกอันตาม)",pg:"10",det:[["เชื่อมกับ","KOL ระยะ 1 (ศิลปิน/บัญชี reach สูง) และหมุด “บุกสยาม” ในแท็บแผน 3 ระยะ"]]}]},
+    {id:"ev-siam",alias:"ph3",t:"บุกสยาม",s:[11,12],sum:"Kick off อวดเมืองโคราชที่สยาม (วันเดียวกับระยะ 3 Siam Launch ย้ายอันใดอันหนึ่ง อีกอันตาม)",pg:"10",det:[["เชื่อมกับ","KOL ระยะ 1 (ศิลปิน/บัญชี reach สูง) และหมุด “บุกสยาม” ในแท็บแผน 3 ระยะ"]]}]},
   {g:"สื่อออฟไลน์",lab:"ทีวี เนชั่นทันข่าวค่ำ (10 ครั้ง)",c:"#e8194c",pg:"176",items:[
     {id:"tv1",t:"ครั้งที่ 1",s:[10,19],sum:"เวิร์กช็อป 10 คุณค่า",pg:"176",det:[["ประเด็น","การเวิร์กช็อป 10 คุณค่าที่สร้างโอกาสของเมืองโคราช พร้อมสัมภาษณ์ ผอ.TCEB และผู้ว่าราชการจังหวัดนครราชสีมา"],["รายการ","เนชั่นทันข่าวค่ำ ช่องเนชั่นทีวี 22 · จันทร์–ศุกร์ 18.00–19.55 น."]]},
     {id:"tv2",t:"ครั้งที่ 2–6",s:[10,26],e:[10,30],sum:"คุณค่าที่สร้างโอกาส ตอนละ 2 คุณค่า",pg:"176",det:[["ประเด็น","ขยายให้เห็นโอกาสทางเศรษฐกิจของเมือง ดึงดูดคนที่สนใจลงทุน"]]},
@@ -125,7 +125,7 @@ function logOf(it){ const L=[]; const c=readC(it.id); if(c&&c.lg) c.lg.forEach(x
 const logLine=x=>`<span class="f">${esc(x.f)}</span> · ${esc(x.by||"—")} · ${ago(x.at)}`;
 function readC(id){ let str="", n=0, by=""; for(;n<30;n++){ const p=P()["pmc:"+id+":"+n]; if(!p||!p.brief) break; str+=p.brief; by=p.by||by; } if(!str) return null; try{ return Object.assign(JSON.parse(str),{_by:by}); }catch(e){ return null; } }
 function dates(it){ if(it.alias&&ITEMS[it.alias]) return dates(ITEMS[it.alias]); const o=ov(it.id); return o?{s:o.s,e:o.e||o.s,by:o.by,ch:true}:{s:it.s,e:it.e||it.s,ch:false}; }
-function eff(it){ const c=readC(it.id)||{}; return {t:c.t||it.t, sum:c.sum!=null?c.sum:(it.sum||""), ch:c.ch||defCh(it), st:c.st||"plan", own:c.own||"", det:c.det||it.det||[], note:c.note||"", edited:!!c.t||!!c.det||!!c.sum||!!c.ch||!!c.st||!!c.own||!!c.note, by:c._by||""}; }
+function eff(it){ const c=readC(it.id)||{}; return {t:c.t||it.t, sum:c.sum!=null?c.sum:(it.sum||""), ch:c.ch||defCh(it), st:c.st||"plan", own:c.own||"", det:c.det||it.det||[], note:c.note||"", nd:!!c.nd, edited:!!c.t||!!c.det||!!c.sum||!!c.ch||!!c.st||!!c.own||!!c.note, by:c._by||""}; }
 // ติ๊ก "ลงแล้ว": "pmx:<id>" = {a:1} (ทั้งรายการ) หรือ {u:["12","13",…]} (รายชิ้นของคลิปสั้น)
 const track=it=>it.row.g!==PH&&!it.row.lock;
 function units(it,E){ if(!it.list) return null; const u=[]; (E||eff(it)).det.forEach((x,i)=>{ const m=String(x[0]).match(/^#(\d+)(?:\s*[–-]\s*(\d+))?/); if(m){ for(let n=+m[1];n<=(m[2]?+m[2]:+m[1]);n++) u.push(String(n)); } else u.push("i"+i); }); return u; }
@@ -231,16 +231,16 @@ function renderPM(){ const el=$("#pm"); if(!el||DRAG||EDIT) return; const sy=win
   const weeks=Object.keys(wk).map(Number).sort((a,b)=>a-b).map(w=>{ const a=md(w), b=md(w+6), now=today>=w&&today<=w+6;
     return `<section class="pm-wk${now?" now":""}"><header><b>${a[0]===b[0]?`${a[1]}–${b[1]} ${MON[a[0]]}`:`${a[1]} ${MON[a[0]]} – ${b[1]} ${MON[b[0]]}`}</b><span>${wk[w].length} รายการ</span>${(()=>{ let n=0,t=0; wk[w].forEach(x=>{ const G=prog(x.it,x.E); if(G){ n+=G.n; t+=G.t; } }); return t?`<span class="wd${n===t?" ok":""}">ทำแล้ว ${n}/${t} ชิ้น</span>`:""; })()}${now?`<i>สัปดาห์นี้</i>`:""}</header>${wk[w].map(({it,E,d})=>{ const row=it.row, op=OPEN===it.id, G=prog(it,E), full=G&&G.pct>=100;
       return `<article class="pm-it${op?" open":""}${full?" dn":""}" id="pmd-${it.id}" style="--c:${row.c}"><div class="pm-rw">
-        ${G?`<button type="button" class="pm-prg p-${G.pace}" data-tog="${it.id}" title="คืบหน้า ${G.pct}% · ${PACE[G.pace]} — กดเพื่อเปิดแล้วติ๊กข้างใน">${ring(G)}<span>${G.pace==="done"?"ลงแล้ว":PACE[G.pace]}</span></button>`:`<span class="pm-prg na"></span>`}
-        <button type="button" class="pm-row" data-tog="${it.id}">${dateTile(d)}<div class="pm-main"><div class="pm-k1"><span class="grp">${row.g===PH?"PHASE "+it.ph:esc(row.lab)}</span>${stPill(E.st)}${d.ch?`<span class="pm-mv">ย้ายวันแล้ว</span>`:""}${E.edited?`<span class="pm-mv">แก้เนื้อหาแล้ว</span>`:""}</div>
+        ${G?`<button type="button" class="pm-prg p-${E.nd&&G.pace!=="done"?"wait":G.pace}" data-tog="${it.id}" title="คืบหน้า ${G.pct}%${E.nd?"":" · "+PACE[G.pace]} — กดเพื่อเปิดแล้วติ๊กข้างใน">${ring(G)}<span>${G.pace==="done"?"ลงแล้ว":E.nd?"":PACE[G.pace]}</span></button>`:`<span class="pm-prg na"></span>`}
+        <button type="button" class="pm-row" data-tog="${it.id}">${E.nd?`<div class="pm-dt nd"></div>`:dateTile(d)}<div class="pm-main"><div class="pm-k1"><span class="grp">${row.g===PH?"PHASE "+it.ph:esc(row.lab)}</span>${stPill(E.st)}${d.ch?`<span class="pm-mv">ย้ายวันแล้ว</span>`:""}${E.edited?`<span class="pm-mv">แก้เนื้อหาแล้ว</span>`:""}</div>
           <b class="ttl">${esc(E.t)}</b><p class="sum">${esc(E.sum)}</p>${E.ch.length?`<div class="pm-chl">${E.ch.map(chip).join("")}</div>`:""}${G&&G.t>1?`<div class="pm-pg"><div class="bar"><i style="width:${Math.round(G.n/G.t*100)}%"></i></div><small>ทำแล้ว <b>${G.n}/${G.t}</b> ชิ้น</small></div>`:""}${(()=>{ const L=logOf(it); return L.length?`<small class="pm-log1">แก้ล่าสุด: ${logLine(L[0])}</small>`:""; })()}</div><span class="chev" aria-hidden="true">▾</span></button>
         ${row.lock?"":`<button type="button" class="pm-qe" data-qedit="${it.id}">✎<span> แก้ไข</span></button>`}</div>
         ${op?`<div class="pm-body">${EDIT===it.id?"":`<div class="pm-cols"><div>${detBody(it,E)}${E.note?`<div class="pm-note"><b>โน้ตทีม</b>${esc(E.note)}</div>`:""}</div>
-          <aside><div><span>ช่วงเวลา</span><b>${fmtRange(d.s,d.e)}</b>${d.ch?`<small>เด็ค: ${fmtRange(it.s,it.e||it.s)}${d.by?` · ย้ายโดย ${esc(d.by)}`:""}</small>`:""}</div>
+          <aside><div><span>ช่วงเวลา</span><b>${E.nd?`<i class="pm-ndl">ซ่อนวันไว้</i>`:fmtRange(d.s,d.e)}</b>${d.ch?`<small>เด็ค: ${fmtRange(it.s,it.e||it.s)}${d.by?` · ย้ายโดย ${esc(d.by)}`:""}</small>`:""}</div>
             ${row.g===PH?`<div><span>น้ำหนักการสื่อสาร</span><div class="wt"><i style="width:${it.w}%"></i></div><small>City Branding ${it.w}% · Festival ${100-it.w}%</small></div>`:""}
             <div><span>ผู้รับผิดชอบ</span><b>${esc(E.own||"—")}</b></div>${it.pg?`<div><span>อ้างอิงเด็ค</span><b>หน้า ${esc(it.pg)}</b></div>`:""}${(()=>{ const L=logOf(it); return L.length?`<div class="pm-hist"><span>บันทึกการแก้ไข</span><ul>${L.slice(0,8).map(x=>`<li>${logLine(x)}</li>`).join("")}</ul></div>`:""; })()}
             ${G?`<div class="pm-tick"><span>ความคืบหน้า</span>${G.U?`<b>${G.n}/${G.t} ชิ้น · ${G.pct}%</b><small>ติ๊กเลขหน้าหัวข้อเมื่อชิ้นนั้นลงแล้ว</small><button type="button" class="btn" data-done="${it.id}">${full?"เอาติ๊กออกทั้งหมด":"✓ ติ๊กว่าลงครบทุกชิ้น"}</button>`:`<button type="button" class="pm-tbig${full?" on":""}" data-done="${it.id}" aria-pressed="${full}"><i>${full?"✓":""}</i>${full?"ลงแล้ว":"ติ๊กว่าลงแล้ว"}</button>${full?"":`<small>ตอนนี้ ${G.pct}% ตามสถานะ “${(STS.find(x=>x[0]===E.st)||STS[0])[1]}”</small>`}`}</div>`:""}
-            <div class="acts"><button type="button" class="btn primary big" data-edit="${it.id}">✎ แก้ไข</button>${d.ch?`<button type="button" class="btn" data-reset="${it.id}">คืนวันที่ตามเด็ค</button>`:""}${row.tab?`<button type="button" class="btn" data-go="${row.tab}">ไปแท็บแผน 3 ระยะ →</button>`:""}</div></aside></div>`}</div>`:""}
+            <div class="acts"><button type="button" class="btn primary big" data-edit="${it.id}">✎ แก้ไข</button>${row.lock?"":`<button type="button" class="btn" data-nd="${it.id}">${E.nd?"แสดงวัน":"ซ่อนวัน"}</button>`}${d.ch?`<button type="button" class="btn" data-reset="${it.id}">คืนวันที่ตามเด็ค</button>`:""}${row.tab?`<button type="button" class="btn" data-go="${row.tab}">ไปแท็บแผน 3 ระยะ →</button>`:""}</div></aside></div>`}</div>`:""}
       </article>`; }).join("")}</section>`; }).join("");
   el.innerHTML=`<section class="box pm-head"><div><h2>PLAN MEDIA · แผนสื่อตามวันเวลา</h2><div class="pm-t">อวดเมืองโคราช 12 ต.ค. 69 – 10 ม.ค. 70</div>
       <div class="pm-s">กดแถบ = เปิดรายละเอียดด้านล่าง · กดวงกลม = ติ๊กว่าลงแล้ว · ลากแถบ = ย้ายวัน · ลากขอบ = ยืด/หด · กด “แก้ไข” ในรายละเอียดเพื่อแก้เนื้อหา — บันทึกแล้วทุกคนเห็นทันที${changed?` · <b>ปรับจากเด็คแล้ว ${changed} รายการ</b>`:""}</div></div>
@@ -259,6 +259,7 @@ function renderPM(){ const el=$("#pm"); if(!el||DRAG||EDIT) return; const sy=win
   el.querySelectorAll("[data-qedit]").forEach(b=>b.onclick=()=>{ OPEN=b.dataset.qedit; renderPM(); openEditor(OPEN); });
   el.querySelectorAll("[data-goto]").forEach(b=>b.onclick=()=>goDetail(b.dataset.goto));
   el.querySelectorAll("[data-li]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); editLine(b.dataset.li,+b.dataset.i); });
+  el.querySelectorAll("[data-nd]").forEach(b=>b.onclick=()=>toggleNd(b.dataset.nd));
   el.querySelectorAll("[data-done]").forEach(b=>b.onclick=()=>toggleAll(b.dataset.done));
   el.querySelectorAll("[data-tk]").forEach(b=>b.onclick=()=>toggleUnit(b.dataset.tk,b.dataset.u));
   $("#pm-hide").onclick=()=>{ HIDE=!HIDE; renderPM(); };
@@ -267,6 +268,8 @@ function renderPM(){ const el=$("#pm"); if(!el||DRAG||EDIT) return; const sy=win
   el.querySelectorAll(".pm-bar").forEach(b=>b.addEventListener("pointerdown",down));
 }
 window.renderPM=renderPM;
+
+function toggleNd(id){ const c=Object.assign({},readC(id)||{}); delete c._by; delete c.lg; const on=!c.nd; if(on) c.nd=1; else delete c.nd; saveContent(id,c,on?"ซ่อนวัน":"แสดงวัน"); renderPM(); }
 
 function openEditor(id){ const it=ITEMS[id], a=$("#pmd-"+id); if(!it||!a) return; EDIT=id; const body=a.querySelector(".pm-body"); body.innerHTML=editorHTML(it,eff(it),dates(it)); const f=body.querySelector("form");
   f.querySelector('[data-act="cancel"]').onclick=()=>{ EDIT=null; renderPM(); };

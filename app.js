@@ -121,7 +121,7 @@ function render(){ try{ renderTimeline(); }catch(e){}
     wrap.appendChild(rowEl(d,rankOf,reach,max,false)); });
   if(!vis.length) wrap.innerHTML=data.length?`<div class="empty">ไม่พบ KOL ที่ตรงกับตัวกรอง</div>`:`<div class="skel" id="skel"></div>`;
   const tl=teamList(sorted);
-  $("#t-review").textContent=nw; $("#t-team").textContent=`${Math.min(tl.all.length,TARGET)}/${TARGET}`; $("#t-target").textContent=TARGET;
+  $("#t-review").textContent=`${np}/${data.length}`; $("#t-review").parentElement.title=`ลูกค้ายืนยันผ่านแล้ว ${np} จาก ${data.length} คน · ตัดออก ${nf} · ยังไม่ได้ดู ${nw}`; $("#t-team").textContent=`${Math.min(tl.all.length,TARGET)}/${TARGET}`; $("#t-target").textContent=TARGET;
   $("#t-plan").textContent=tl.all.filter(d=>phasesOf(d).length).length+"/"+tl.all.length;
   NWP=nanoPlan(tl.all); renderTeam(sorted,reach); renderPlan(sorted); renderNanoWeek(tl.all); renderAI(tl.all); renderSched(tl.all);
   $("#t-sched").textContent=tl.all.filter(d=>datesOf(d).length).length+"/"+tl.all.length;
@@ -210,9 +210,9 @@ function aiPlan(passed){
 /* ===== timeline 6–29 พ.ย. จากแผน PR ===== */
 const TL_DAYS=Array.from({length:24},(_,i)=>6+i);
 const TL_W={6:2,7:2,8:4,9:3,10:3,11:3,12:4,13:4,14:4,15:5,16:5,17:5,18:5,19:5,20:4,21:4,22:3,23:2,24:2,25:2,26:3,27:4,28:4,29:3};
-const TL_EV=[{d:8,id:"ev-siam",t:"บุกสยาม",s:"Kick-off กทม. KOL 5–8 คน"},{d:13,id:"tv7",t:"เริ่ม TVC + เทงบสื่อ",s:"ช่วงเร่งคนตัดสินใจ 13–19"},{d:19,id:"pt1",t:"Press Tour",s:"สื่อไลฟ์สไตล์ 19–20"},{d:20,t:"เปิดเมือง",s:"K-Street / K-Sounder 20–22"},{d:23,t:"7 จุดในเมือง",s:"ช่วงเย็น 23–26"},{d:27,t:"เปิดงานทางการ",s:"K-BATx · รอบชิง · Jennifer Kim 27–29"}];
+const TL_EV=[{d:12,id:"ev-siam",t:"บุกสยาม",s:"Kick-off กทม. KOL 5–8 คน"},{d:13,id:"tv7",t:"เริ่ม TVC + เทงบสื่อ",s:"ช่วงเร่งคนตัดสินใจ 13–19"},{d:19,id:"pt1",t:"Press Tour",s:"สื่อไลฟ์สไตล์ 19–20"},{d:20,t:"เปิดเมือง",s:"K-Street / K-Sounder 20–22"},{d:23,t:"7 จุดในเมือง",s:"ช่วงเย็น 23–26"},{d:27,t:"เปิดงานทางการ",s:"K-BATx · รอบชิง · Jennifer Kim 27–29"}];
 const tlPhase=d=>d<13?1:d<20?2:3;
-const SIAM=()=>{ const v=window.pmNovDay?window.pmNovDay("ph3"):null; return v&&v>=6&&v<=12?v:8; }; // วันบุกสยาม (ตาม PLAN MEDIA)
+const SIAM=()=>{ const v=window.pmNovDay?window.pmNovDay("ph3"):null; return v&&v>=6&&v<=14?v:12; }; // วันบุกสยาม (ตาม PLAN MEDIA)
 // หมุดที่มี id ใช้วันจาก PLAN MEDIA (ถ้ามีคนลากย้ายไว้)
 const tlEvents=()=>TL_EV.map(e=>{ const v=e.id&&window.pmNovDay?window.pmNovDay(e.id):null; return v&&v>=6&&v<=29?Object.assign({},e,{d:v}):e; }).sort((a,b)=>a.d-b.d);
 /* Nano Week (รายละเอียดใต้ autoDates) */
