@@ -428,15 +428,32 @@ function closeCard(){ $("#kmodal").hidden=true; }
 $("#kmodal").addEventListener("click",e=>{ if(e.target.id==="kmodal") closeCard(); });
 function histLine(d){ const hs=history[rid(d)]||[]; const fails=[...new Set(hs.filter(x=>x.status==="fail").map(x=>x.by).filter(Boolean))], passes=[...new Set(hs.filter(x=>x.status==="pass").map(x=>x.by).filter(Boolean))];
   const parts=[]; if(fails.length) parts.push("ไม่ผ่าน: "+fails.join(", ")); if(passes.length) parts.push("ผ่าน: "+passes.join(", ")); return parts.join(" · "); }
+/* เงื่อนไขรับงานต่อ KOL: เก็บในชีต Posts key = kc:<rid> · ไม่แตะผลผ่าน/ตัดออก */
+const COND_OPTS=["คลิปพรีโปรโมตเท่านั้น","ไม่ไปหน้างาน","ไปหน้างานได้","ไลฟ์ได้","โพสต์ 1 ชิ้นเท่านั้น"];
+const condOf=d=>{ const p=POSTS["kc:"+rid(d)]; if(!p||!p.brief) return null; try{ const c=JSON.parse(p.brief); return (c.t&&c.t.length)||c.x?c:null; }catch(e){ return null; } };
+function condHTML(d){ const c=condOf(d); if(!c) return `<button type="button" class="kcd add" title="ระบุว่า KOL คนนี้รับงานแบบไหน">+ เงื่อนไขรับงาน</button>`;
+  return `<button type="button" class="kcd" title="แก้เงื่อนไขรับงาน${c.by?" · ใส่โดย "+esc(c.by):""}">🎬 ${esc((c.t||[]).concat(c.x?[c.x]:[]).join(" · "))} <i>✎</i></button>`; }
+function openCond(d){ if(!reviewer){ askName(()=>openCond(d)); return; } const c=condOf(d)||{t:[],x:""}; let m=$("#cmodal");
+  if(!m){ m=document.createElement("div"); m.id="cmodal"; m.className="modal"; document.body.appendChild(m); m.addEventListener("click",e=>{ if(e.target.id==="cmodal") m.hidden=true; }); }
+  const sel=new Set(c.t||[]);
+  m.innerHTML=`<div class="card kcm"><h3>เงื่อนไขรับงาน · ${esc(d.name)}</h3><p class="sub">ป้ายนี้ขึ้นใต้ชื่อให้ทุกคนเห็น ไม่เปลี่ยนผลผ่าน/ตัดออก</p>
+    <div class="reasons kco">${COND_OPTS.map(o=>`<button type="button" class="${sel.has(o)?"on":""}" data-o="${esc(o)}">${esc(o)}</button>`).join("")}</div>
+    <input id="kc-x2" placeholder="พิมพ์เพิ่ม เช่น รับเฉพาะ TikTok" value="${esc(c.x||"")}">
+    <div class="acts">${condOf(d)?`<button type="button" class="btn ghost" id="kc-clr">ลบป้าย</button>`:""}<span class="sp"></span><button type="button" class="btn" id="kc-cn">ยกเลิก</button><button type="button" class="btn primary" id="kc-ok">บันทึก</button></div></div>`;
+  m.hidden=false; m.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{ const o=b.dataset.o; if(sel.has(o)) sel.delete(o); else sel.add(o); b.classList.toggle("on"); });
+  const save=(t,x)=>{ m.hidden=true; const rec={key:"kc:"+rid(d),kol:rid(d),name:d.name,day:0,format:"cond",brief:(t.length||x)?JSON.stringify({t,x,by:reviewer,at:Date.now()}):"",status:"",link:"",by:reviewer}; const prev=POSTS[rec.key]; POSTS[rec.key]=rec; render(); logEv("cond",d.name+" "+t.concat(x?[x]:[]).join(","));
+    api("setPost",[rec]).then(()=>toast(rec.brief?`บันทึกเงื่อนไขรับงาน ${d.name} แล้ว`:`ลบป้ายเงื่อนไข ${d.name} แล้ว`)).catch(err=>{ if(prev) POSTS[rec.key]=prev; else delete POSTS[rec.key]; render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); };
+  $("#kc-cn").onclick=()=>{ m.hidden=true; }; $("#kc-ok").onclick=()=>save([...sel],$("#kc-x2").value.trim()); const cl=$("#kc-clr"); if(cl) cl.onclick=()=>save([],""); }
 function rowEl(d,rankOf,reach,max,isNew){
     const st=statusOf(d), rk=rankOf.get(d), rv=rvOf(d), R=reviews[rid(d)]||{}; const row=document.createElement("div"); row.className="row"+(st?" "+st:"")+(rv?" "+rv:"")+(isNew?" sugnew":"");
     const nm=`<a href="#" class="open-card">${esc(d.name)}</a>`;
     row.innerHTML=`<div class="rk${rk<=10?" lead":""}">${d.sug?"★":rk}</div>
-      <div class="who">${avatarEl(d)}<div class="who-t"><div class="nm">${nm}${codeLabel(d.code)?`<span class="badge code${codeSoft(d.code)?" soft":""}" title="${codeSoft(d.code)?"MiDi แนะนำ":"Code: "+esc(d.code)}">${esc(codeLabel(d.code))}</span>`:""}${d.artist?`<span class="badge art">ARTIST</span>`:""}${d.sug?`<span class="badge sug" title="เพิ่มโดย ${esc(d.by)}">เพิ่มใหม่ · ${esc(d.by||"ลูกค้า")}</span>`:""}${st?`<span class="badge ${st}">${st==="new"?"NEW":"EDIT"}</span>`:""}</div><div class="ct" title="${esc(d.cat)}">${esc(d.cat||"—")}</div></div></div>
+      <div class="who">${avatarEl(d)}<div class="who-t"><div class="nm">${nm}${codeLabel(d.code)?`<span class="badge code${codeSoft(d.code)?" soft":""}" title="${codeSoft(d.code)?"MiDi แนะนำ":"Code: "+esc(d.code)}">${esc(codeLabel(d.code))}</span>`:""}${d.artist?`<span class="badge art">ARTIST</span>`:""}${d.sug?`<span class="badge sug" title="เพิ่มโดย ${esc(d.by)}">เพิ่มใหม่ · ${esc(d.by||"ลูกค้า")}</span>`:""}${st?`<span class="badge ${st}">${st==="new"?"NEW":"EDIT"}</span>`:""}</div><div class="ct" title="${esc(d.cat)}">${esc(d.cat||"—")}</div>${condHTML(d)}</div></div>
       <div class="trk" title="${fmtN(d.f)} ผู้ติดตาม"><div class="fill" style="width:${(widthOf(d.f,max)*100).toFixed(2)}%;background:${heat(d.f)}"></div></div>
       <div class="val">${fmtN(d.f)}<small>${d.f?Math.round(d.f/reach*1000)/10+"% ของ reach":"ไม่ระบุ"}</small></div>
       <div class="rvw"><span class="rv-lbl ${rv||"wait"}">${rv==="pass"?"✓ ยืนยัน":rv==="fail"?"✗ ตัดออก":"ในทีม"}</span><div class="rv" title="ติ๊กผลพิจารณา"><button type="button" class="pass${rv==="pass"?" on":""}" data-s="pass">✓ ผ่าน</button><button type="button" class="fail${rv==="fail"?" on":""}" data-s="fail">✗ ตัดออก</button></div>${rv&&R.by?`<div class="meta" title="${esc((R.by||"")+(R.reason?" · "+R.reason:""))}"><b>${rv==="fail"?"✗":"✓"} ${esc(R.by)}</b>${R.reason?` · ${esc(R.reason)}`:""}</div>`:""}${histLine(d)?`<div class="meta" title="${esc(histLine(d))}">${esc(histLine(d))}</div>`:""}</div>`;
     row.querySelectorAll(".rv button").forEach(b=>b.onclick=()=>{ const s=rv===b.dataset.s?"":b.dataset.s; if(s==="fail") askReason(d); else setReview(d,s,""); });
+    row.querySelector(".kcd").onclick=e=>{ e.preventDefault(); openCond(d); };
     row.querySelector(".open-card").onclick=e=>{ e.preventDefault(); openCard(d); }; row.querySelector(".av").onclick=()=>openCard(d); row.querySelector(".av").style.cursor="pointer";
     return row;
 }
