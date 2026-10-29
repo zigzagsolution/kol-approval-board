@@ -121,7 +121,7 @@ function render(){ try{ renderTimeline(); }catch(e){}
     wrap.appendChild(rowEl(d,rankOf,reach,max,false)); });
   if(!vis.length) wrap.innerHTML=data.length?`<div class="empty">ไม่พบ KOL ที่ตรงกับตัวกรอง</div>`:`<div class="skel" id="skel"></div>`;
   const tl=teamList(sorted);
-  $("#t-review").textContent=nw; $("#t-team").textContent=`${Math.min(tl.all.length,TARGET)}/${TARGET}`; $("#t-target").textContent=TARGET;
+  $("#t-review").textContent=`${np}/${data.length}`; $("#t-review").parentElement.title=`ลูกค้ายืนยันผ่านแล้ว ${np} จาก ${data.length} คน · ตัดออก ${nf} · ยังไม่ได้ดู ${nw}`; $("#t-team").textContent=`${Math.min(tl.all.length,TARGET)}/${TARGET}`; $("#t-target").textContent=TARGET;
   $("#t-plan").textContent=tl.all.filter(d=>phasesOf(d).length).length+"/"+tl.all.length;
   NWP=nanoPlan(tl.all); renderTeam(sorted,reach); renderPlan(sorted); renderNanoWeek(tl.all); renderAI(tl.all); renderSched(tl.all);
   $("#t-sched").textContent=tl.all.filter(d=>datesOf(d).length).length+"/"+tl.all.length;
