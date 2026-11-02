@@ -33,8 +33,25 @@ function requestAccess(p) {
     if (prior) { sh.appendRow([vid, name, phone, "approved", new Date(), "auto (เบอร์เคยอนุมัติ)", new Date(), String(prior[7]||"viewer"), String(p.ua||"").slice(0,120)]); try { pushLine_("✅ เข้าดูบอร์ด KOL (เบอร์เคยอนุมัติ)\n" + name + "\n" + phone); } catch (e) {} return { status: "approved", admin: String(prior[7]) === "admin", name }; }
     sh.appendRow([vid, name, phone, "pending", new Date(), "", "", "viewer", String(p.ua||"").slice(0,120)]);
     const pending = rows.filter(r => String(r[3]) === "pending").length + 1; const C = config_();
-    try { pushLine_("🔔 ขอเข้าดูบอร์ด KOL\n👤 " + name + "\n📞 " + phone + "\n⏰ " + Utilities.formatDate(new Date(), "Asia/Bangkok", "d MMM HH:mm") + "\nรออนุมัติ " + pending + " คน — เปิดบอร์ด → ปุ่ม 🔔 คำขอเข้าดู" + (C.APP_URL ? "\n" + C.APP_URL : "")); } catch (e) {}
+    try { pushLine_("🔔 ขอเข้าดูบอร์ด KOL\n👤 " + name + "\n📞 " + phone + "\n⏰ " + Utilities.formatDate(new Date(), "Asia/Bangkok", "d MMM HH:mm") + "\nรออนุมัติ " + pending + " คน — เปิดบอร์ด → ปุ่ม 🔔 คำขอเข้าดู" + (C.APP_URL ? "\n" + C.APP_URL : "") + "\n\nกดในไลน์ได้เลย:\n✅ อนุมัติ " + accessLink_(vid, "approved") + "\n❌ ปฏิเสธ " + accessLink_(vid, "denied")); } catch (e) {}
     return { status: "pending" };
+  } finally { lock.releaseLock(); }
+}
+/* อนุมัติ/ปฏิเสธจากลิงก์ใน LINE: ลิงก์มีลายเซ็น HMAC (LINK_SECRET สร้างเองใน Script Properties ครั้งแรก) ปลอมลิงก์ไม่ได้ */
+const BOARD_PAGE = "https://zigzagsolution.github.io/kol-approval-board/";
+function linkSecret_() { const p = PropertiesService.getScriptProperties(); let s = p.getProperty("LINK_SECRET"); if (!s) { s = Utilities.getUuid() + Utilities.getUuid(); p.setProperty("LINK_SECRET", s); } return s; }
+function linkSig_(vid, status) { return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(String(vid) + "|" + status, linkSecret_())).replace(/=+$/, "").slice(0, 22); }
+function accessLink_(vid, status) { return BOARD_PAGE + "?acc=" + encodeURIComponent(vid) + "&s=" + (status === "denied" ? "d" : "a") + "&t=" + linkSig_(vid, status); }
+function approveByLink(p) {
+  const vid = String(p && p.vid || ""), status = p && p.status === "denied" ? "denied" : "approved";
+  if (!vid || String(p.t || "") !== linkSig_(vid, status)) return { ok:false, msg:"ลิงก์ไม่ถูกต้อง" };
+  const lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    const a = accessOf_(vid); if (!a) return { ok:false, msg:"ไม่พบคำขอนี้" };
+    if (a.status !== "pending") return { ok:true, already:true, status:a.status, name:a.name };
+    accessSheet_().getRange(a.row, 4, 1, 4).setValues([[status, a.at, "LINE", new Date()]]);
+    try { pushLine_((status === "approved" ? "✅ อนุมัติแล้ว: " : "❌ ปฏิเสธแล้ว: ") + a.name + " (กดจาก LINE)"); } catch (e) {}
+    return { ok:true, status:status, name:a.name };
   } finally { lock.releaseLock(); }
 }
 function accessStatus(p) { const a = accessOf_(p && p.vid); return a ? { status: a.status, admin: a.role === "admin", name: a.name } : { status: "none" }; }
@@ -301,4 +318,4 @@ function setup_() {
   Logger.log("Review sheet: " + sh.getParent().getUrl());
 }
 
-return { getData, setReview, setPhase, setPhases, setDates, setDatesMany, setPost, snapshotDates, listSnapshots, restoreSnapshot, pmLogin, requestAccess, accessStatus, staffLogin, listAccess, setAccess, addSuggestion, logEvents };
+return { getData, setReview, setPhase, setPhases, setDates, setDatesMany, setPost, snapshotDates, listSnapshots, restoreSnapshot, pmLogin, requestAccess, accessStatus, approveByLink, staffLogin, listAccess, setAccess, addSuggestion, logEvents };

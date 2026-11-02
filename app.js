@@ -557,6 +557,16 @@ $("#adm-btn").onclick=()=>{ $("#amodal").hidden=false; $("#alist").textContent="
     $("#alist").innerHTML=(pend.length?`<div class="gh">รออนุมัติ ${pend.length}</div>`+pend.map(row).join(""):`<div class="empty">ไม่มีคำขอค้าง</div>`)+(rest.length?`<div class="gh">ล่าสุด</div>`+rest.map(row).join(""):"");
     $("#alist").querySelectorAll("button[data-v]").forEach(b=>b.onclick=()=>{ b.disabled=true; api("setAccess",[{vid:VID,target:b.dataset.v,status:b.dataset.s,by:reviewer||ACCESS.name}]).then(()=>{ toast(b.dataset.s==="approved"?"อนุมัติแล้ว — หน้าของเขาจะเปิดเอง":"ปฏิเสธแล้ว"); logEv("access",b.dataset.s+" "+b.dataset.v); $("#adm-btn").click(); admCount(); }).catch(err=>{ b.disabled=false; toast("ไม่สำเร็จ: "+(err&&err.message||err)); }); }); }).catch(err=>{ $("#alist").textContent="โหลดไม่สำเร็จ: "+(err&&err.message||err); }); };
 $("#a-close").onclick=()=>{ $("#amodal").hidden=true; }; $("#amodal").addEventListener("click",e=>{ if(e.target.id==="amodal") $("#amodal").hidden=true; });
+/* ลิงก์อนุมัติจาก LINE: ?acc=<vid>&s=a|d&t=<sig> */
+(function(){ let u; try{ u=new URLSearchParams(location.search); }catch(e){ return; } const vid=u.get("acc"); if(!vid) return; const status=u.get("s")==="d"?"denied":"approved";
+  try{ history.replaceState(null,"",location.pathname); }catch(e){}
+  const ov=document.createElement("div"); ov.className="modal lnk-ov"; ov.innerHTML=`<div class="card lnk"><div class="lnk-i">⏳</div><h3>กำลังบันทึก…</h3><p class="sub"></p><button type="button" class="btn primary">ตกลง</button></div>`; document.body.appendChild(ov);
+  const set=(i,h,p)=>{ ov.querySelector(".lnk-i").textContent=i; ov.querySelector("h3").textContent=h; ov.querySelector(".sub").textContent=p||""; };
+  ov.querySelector("button").onclick=()=>ov.remove();
+  api("approveByLink",[{vid,status,t:u.get("t")||""}]).then(r=>{ if(!r||!r.ok){ set("⚠️",(r&&r.msg)||"ลิงก์ไม่ถูกต้อง"); return; }
+    if(r.already) set("ℹ️",`${r.name} ${r.status==="approved"?"ได้รับอนุมัติ":r.status==="denied"?"ถูกปฏิเสธ":"มีสถานะ "+r.status} อยู่แล้ว`,"ไม่ได้เปลี่ยนอะไรค่ะ");
+    else set(r.status==="approved"?"✅":"❌",`${r.status==="approved"?"อนุมัติ":"ปฏิเสธ"} ${r.name} แล้ว`,r.status==="approved"?"หน้าบอร์ดของเขาจะเปิดเองภายใน 10 วินาทีค่ะ":"เขาจะเห็นข้อความว่าคำขอถูกปฏิเสธค่ะ"); })
+  .catch(err=>set("⚠️","บันทึกไม่สำเร็จ",String(err&&err.message||err))); })();
 /* เริ่มต้น */
 if(ACCESS&&ACCESS.vid===VID){ gateOpen(); } else { gateShow("gate-form"); try{ const q=JSON.parse(localStorage.getItem("kol_gate_req")||"null"); if(q){ $("#g-name").value=q.name||""; $("#g-phone").value=q.phone||""; api("accessStatus",[{vid:VID}]).then(r=>{ if(r&&r.status==="approved"){ gateSave({vid:VID,name:r.name||q.name,phone:q.phone,admin:!!r.admin,at:Date.now()}); gateOpen(); } else if(r&&r.status==="pending") gateWait(q.name,q.phone); }).catch(()=>{}); } }catch(e){} }
 window.KOL={$,esc,setTab,logEv,flushLog,api,toast,render,posts:()=>POSTS,reviewer:()=>reviewer,tab:()=>TAB}; // ให้ planmedia.js ใช้

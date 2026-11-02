@@ -739,3 +739,10 @@ mark.nm{background:color-mix(in srgb,var(--c) 14%,transparent);color:inherit;fon
 .zm-empty{font-size:12.5px;color:var(--mute)}
 .zmb{display:inline-block;margin-top:6px;border:1px dashed #9CC3FF;background:#fff;color:#1A5FB4;border-radius:8px;padding:3px 8px;font-size:12px;font-weight:600;cursor:pointer}
 .zmb.on{border-style:solid;background:#2D8CFF;border-color:#2D8CFF;color:#fff}
+
+/* ผลกดอนุมัติจากลิงก์ LINE */
+.modal.lnk-ov{z-index:9999}
+.lnk{text-align:center;padding:26px 22px}
+.lnk-i{font-size:44px;line-height:1;margin-bottom:8px}
+.lnk h3{margin:0 0 6px;font-size:20px}
+.lnk .sub{margin:0 0 16px;color:var(--mute);font-size:14px}
