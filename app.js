@@ -89,9 +89,10 @@ function render(){ try{ renderTimeline(); }catch(e){}
   const max=Math.max(...sorted.map(d=>d.f||0),1), reach=sorted.reduce((s,d)=>s+(d.f||0),0), upd=data.filter(statusOf);
   $("#k-n").textContent=data.length; $("#k-reach").textContent=fmtN(reach);
   const np=data.filter(d=>rvOf(d)==="pass").length, nf=data.filter(d=>rvOf(d)==="fail").length, nw=data.length-np-nf;
+  renderZoom();
   $("#k-pass").textContent=np; $("#k-fail").textContent=nf;
   $("#rev-l").textContent=`อยู่ในทีม ${data.length-nf} คน · ยืนยันแล้ว ${np} · ยังไม่ได้ดู ${nw} · ตัดออก ${nf}`+(upd.length?` · อัปเดตใหม่ ${upd.length}`:"");
-  $("#rvchips").innerHTML=[["","ทั้งหมด",data.length],["pass","ยืนยันแล้ว",np],["fail","ตัดออก",nf],["wait","ยังไม่ได้ดู",nw]].map(([k,l,n])=>`<button type="button" class="chip${filterRv===k?" active":""}" data-k="${k}">${l} <b>${n}</b></button>`).join("");
+  $("#rvchips").innerHTML=[["","ทั้งหมด",data.length],["pass","ยืนยันแล้ว",np],["fail","ตัดออก",nf],["wait","ยังไม่ได้ดู",nw],["zoom","📹 เข้า ZOOM ได้",data.filter(zoomOf).length]].map(([k,l,n])=>`<button type="button" class="chip${filterRv===k?" active":""}" data-k="${k}">${l} <b>${n}</b></button>`).join("");
   $("#rvchips").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{filterRv=b.dataset.k;logEv("filter","rv:"+(b.dataset.k||"all"));render();});
   const codeKey=d=>codeSoft(d.code)?"MIDI":d.code; const codes=[...new Set(data.map(codeKey))].sort((a,b)=>a==="MIDI"?1:b==="MIDI"?-1:a.localeCompare(b)); const cc=$("#codechips"); cc.hidden=codes.length<2;
   cc.innerHTML=[["*","ทั้งหมด",data.length]].concat(codes.map(c=>[c,c==="MIDI"?"MiDi แนะนำ":codeLabel(c),data.filter(d=>codeKey(d)===c).length])).map(([k,l,n])=>`<button type="button" class="chip code${(filterCode||"*")===k?" active":""}${k==="MIDI"?" soft":""}" data-k="${esc(k)}">${esc(l)} <b>${n}</b></button>`).join("");
@@ -112,7 +113,7 @@ function render(){ try{ renderTimeline(); }catch(e){}
   // ticks
   const tk=$("#ticks"); tk.innerHTML=""; const tv=scale==="linear"?[0,0.5e6,1e6,1.5e6,2e6]:[1e4,1e5,1e6]; tv.filter(v=>v<=max).forEach(v=>{ const s=document.createElement("span"); s.style.left=(widthOf(v,max)*88)+"%"; s.textContent=v?fmtN(v):"0"; tk.appendChild(s); });
   // rows
-  const vis=sorted.filter(d=>(!filterTier||d.tier===filterTier)&&(!filterRv||(filterRv==="wait"?!rvOf(d):rvOf(d)===filterRv))&&(!filterCode||(filterCode==="MIDI"?codeSoft(d.code):d.code===filterCode))&&(!q||(d.name+" "+d.cat+" "+d.group+" "+(d.code||"")).toLowerCase().includes(q)));
+  const vis=sorted.filter(d=>(!filterTier||d.tier===filterTier)&&(!filterRv||(filterRv==="wait"?!rvOf(d):filterRv==="zoom"?zoomOf(d):rvOf(d)===filterRv))&&(!filterCode||(filterCode==="MIDI"?codeSoft(d.code):d.code===filterCode))&&(!q||(d.name+" "+d.cat+" "+d.group+" "+(d.code||"")).toLowerCase().includes(q)));
   const wrap=$("#rows"); wrap.innerHTML=""; let lastTier=null, rank=0; const rankOf=new Map(sorted.map((d,i)=>[d,i+1]));
   const pinned=vis.filter(d=>d.sug&&!rvOf(d)); const rest=vis.filter(d=>!(d.sug&&!rvOf(d)));
   if(pinned.length){ const ph=document.createElement("div"); ph.className="pinhead"; ph.innerHTML=`<b>KOL เพิ่มมาใหม่</b><span>${pinned.length} รายการ รอพิจารณา</span><span class="blink">● กดดูแล้วติ๊กผล</span>`; wrap.appendChild(ph); pinned.forEach(d=>wrap.appendChild(rowEl(d,rankOf,reach,max,true))); const sp=document.createElement("div"); sp.className="pin"; wrap.appendChild(sp); }
@@ -444,6 +445,16 @@ function openCond(d){ if(!reviewer){ askName(()=>openCond(d)); return; } const c
   const save=(t,x)=>{ m.hidden=true; const rec={key:"kc:"+rid(d),kol:rid(d),name:d.name,day:0,format:"cond",brief:(t.length||x)?JSON.stringify({t,x,by:reviewer,at:Date.now()}):"",status:"",link:"",by:reviewer}; const prev=POSTS[rec.key]; POSTS[rec.key]=rec; render(); logEv("cond",d.name+" "+t.concat(x?[x]:[]).join(","));
     api("setPost",[rec]).then(()=>toast(rec.brief?`บันทึกเงื่อนไขรับงาน ${d.name} แล้ว`:`ลบป้ายเงื่อนไข ${d.name} แล้ว`)).catch(err=>{ if(prev) POSTS[rec.key]=prev; else delete POSTS[rec.key]; render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); };
   $("#kc-cn").onclick=()=>{ m.hidden=true; }; $("#kc-ok").onclick=()=>save([...sel],$("#kc-x2").value.trim()); const cl=$("#kc-clr"); if(cl) cl.onclick=()=>save([],""); }
+/* เข้าประชุม ZOOM ได้: ทีมติ๊ก เก็บในชีต Posts key = zm:<rid> · ไม่แตะผลผ่าน/ตัดออก */
+const zoomRec=d=>{ const p=POSTS["zm:"+rid(d)]; if(!p||!p.brief) return null; try{ const z=JSON.parse(p.brief); return z&&z.ok?z:null; }catch(e){ return null; } };
+const zoomOf=d=>!!zoomRec(d);
+function zoomHTML(d){ const z=zoomRec(d); return `<button type="button" class="zmb${z?" on":""}" title="${z?"ติ๊กโดย "+esc(z.by||"")+" · กดอีกครั้งเพื่อเอาออก":"ติ๊กถ้า KOL คนนี้เข้าประชุม ZOOM ได้"}">${z?"☑":"☐"} เข้า ZOOM ได้</button>`; }
+function toggleZoom(d){ if(!reviewer){ askName(()=>toggleZoom(d)); return; } const on=!zoomOf(d); const rec={key:"zm:"+rid(d),kol:rid(d),name:d.name,day:0,format:"zoom",brief:on?JSON.stringify({ok:1,by:reviewer,at:Date.now()}):"",status:"",link:"",by:reviewer}; const prev=POSTS[rec.key]; POSTS[rec.key]=rec; render(); logEv("zoom",d.name+" "+(on?"on":"off"));
+  api("setPost",[rec]).then(()=>toast(on?`${d.name} · เข้า ZOOM ได้ ✓`:`เอา ${d.name} ออกจากรายชื่อ ZOOM แล้ว`)).catch(err=>{ if(prev) POSTS[rec.key]=prev; else delete POSTS[rec.key]; render(); toast("บันทึกไม่สำเร็จ: "+(err&&err.message||err)); }); }
+function renderZoom(){ const el=$("#zoom-box"); if(!el) return; const inTeam=data.filter(d=>rvOf(d)!=="fail"), yes=[...data].filter(zoomOf).sort((a,b)=>(b.f||0)-(a.f||0));
+  el.innerHTML=`<div class="zm-h"><h2>📹 เข้าประชุม ZOOM ได้</h2><div class="zm-n"><b>${yes.length}</b> คน <small>จาก ${inTeam.length} คนในทีม</small></div>${yes.length?`<button type="button" class="btn" id="zm-only">${filterRv==="zoom"?"ดูทั้งหมด":"ดูเฉพาะคนที่เข้าได้"}</button>`:""}</div>
+    <div class="zm-list">${yes.length?yes.map(d=>`<span class="zm-chip${rvOf(d)==="fail"?" out":""}" title="ติ๊กโดย ${esc(zoomRec(d).by||"")}">${esc(d.name)}</span>`).join(""):`<span class="zm-empty">ยังไม่มีใครถูกติ๊ก · ทีมกด "☐ เข้า ZOOM ได้" ในแถวของ KOL ด้านล่าง</span>`}</div>`;
+  const b=$("#zm-only"); if(b) b.onclick=()=>{ filterRv=filterRv==="zoom"?"":"zoom"; logEv("filter","rv:"+(filterRv||"all")); render(); }; }
 function rowEl(d,rankOf,reach,max,isNew){
     const st=statusOf(d), rk=rankOf.get(d), rv=rvOf(d), R=reviews[rid(d)]||{}; const row=document.createElement("div"); row.className="row"+(st?" "+st:"")+(rv?" "+rv:"")+(isNew?" sugnew":"");
     const nm=`<a href="#" class="open-card">${esc(d.name)}</a>`;
@@ -451,9 +462,9 @@ function rowEl(d,rankOf,reach,max,isNew){
       <div class="who">${avatarEl(d)}<div class="who-t"><div class="nm">${nm}${codeLabel(d.code)?`<span class="badge code${codeSoft(d.code)?" soft":""}" title="${codeSoft(d.code)?"MiDi แนะนำ":"Code: "+esc(d.code)}">${esc(codeLabel(d.code))}</span>`:""}${d.artist?`<span class="badge art">ARTIST</span>`:""}${d.sug?`<span class="badge sug" title="เพิ่มโดย ${esc(d.by)}">เพิ่มใหม่ · ${esc(d.by||"ลูกค้า")}</span>`:""}${st?`<span class="badge ${st}">${st==="new"?"NEW":"EDIT"}</span>`:""}</div><div class="ct" title="${esc(d.cat)}">${esc(d.cat||"—")}</div>${condHTML(d)}</div></div>
       <div class="trk" title="${fmtN(d.f)} ผู้ติดตาม"><div class="fill" style="width:${(widthOf(d.f,max)*100).toFixed(2)}%;background:${heat(d.f)}"></div></div>
       <div class="val">${fmtN(d.f)}<small>${d.f?Math.round(d.f/reach*1000)/10+"% ของ reach":"ไม่ระบุ"}</small></div>
-      <div class="rvw"><span class="rv-lbl ${rv||"wait"}">${rv==="pass"?"✓ ยืนยัน":rv==="fail"?"✗ ตัดออก":"ในทีม"}</span><div class="rv" title="ติ๊กผลพิจารณา"><button type="button" class="pass${rv==="pass"?" on":""}" data-s="pass">✓ ผ่าน</button><button type="button" class="fail${rv==="fail"?" on":""}" data-s="fail">✗ ตัดออก</button></div>${rv&&R.by?`<div class="meta" title="${esc((R.by||"")+(R.reason?" · "+R.reason:""))}"><b>${rv==="fail"?"✗":"✓"} ${esc(R.by)}</b>${R.reason?` · ${esc(R.reason)}`:""}</div>`:""}${histLine(d)?`<div class="meta" title="${esc(histLine(d))}">${esc(histLine(d))}</div>`:""}</div>`;
+      <div class="rvw"><span class="rv-lbl ${rv||"wait"}">${rv==="pass"?"✓ ยืนยัน":rv==="fail"?"✗ ตัดออก":"ในทีม"}</span><div class="rv" title="ติ๊กผลพิจารณา"><button type="button" class="pass${rv==="pass"?" on":""}" data-s="pass">✓ ผ่าน</button><button type="button" class="fail${rv==="fail"?" on":""}" data-s="fail">✗ ตัดออก</button></div>${zoomHTML(d)}${rv&&R.by?`<div class="meta" title="${esc((R.by||"")+(R.reason?" · "+R.reason:""))}"><b>${rv==="fail"?"✗":"✓"} ${esc(R.by)}</b>${R.reason?` · ${esc(R.reason)}`:""}</div>`:""}${histLine(d)?`<div class="meta" title="${esc(histLine(d))}">${esc(histLine(d))}</div>`:""}</div>`;
     row.querySelectorAll(".rv button").forEach(b=>b.onclick=()=>{ const s=rv===b.dataset.s?"":b.dataset.s; if(s==="fail") askReason(d); else setReview(d,s,""); });
-    row.querySelector(".kcd").onclick=e=>{ e.preventDefault(); openCond(d); };
+    row.querySelector(".kcd").onclick=e=>{ e.preventDefault(); openCond(d); }; row.querySelector(".zmb").onclick=e=>{ e.preventDefault(); toggleZoom(d); };
     row.querySelector(".open-card").onclick=e=>{ e.preventDefault(); openCard(d); }; row.querySelector(".av").onclick=()=>openCard(d); row.querySelector(".av").style.cursor="pointer";
     return row;
 }
