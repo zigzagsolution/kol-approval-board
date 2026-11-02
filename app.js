@@ -84,7 +84,7 @@ function heat(f){ if(!f) return `var(--h0)`; const t=Math.max(0,Math.min(1,(Math
   if(i>=STOPS.length-1) return `var(${STOPS[STOPS.length-1]})`; return `color-mix(in oklab, var(${STOPS[i+1]}) ${k}%, var(${STOPS[i]}))`; }
 function widthOf(f,max){ if(!f) return 0; if(scale==="linear") return f/max; if(scale==="log") return Math.log10(Math.max(f,1))/Math.log10(max); return Math.sqrt(f/max); }
 
-function render(){ try{ renderTimeline(); }catch(e){}
+function render(){ try{ renderTimeline(); }catch(e){} try{ const qv=$("#q").value.trim().toLowerCase(); if(qv!==q) q=qv; }catch(e){}
   const sorted=[...data].sort((a,b)=>(b.f||0)-(a.f||0)||a.idx-b.idx);
   const max=Math.max(...sorted.map(d=>d.f||0),1), reach=sorted.reduce((s,d)=>s+(d.f||0),0), upd=data.filter(statusOf);
   $("#k-n").textContent=data.length; $("#k-reach").textContent=fmtN(reach);
@@ -113,14 +113,14 @@ function render(){ try{ renderTimeline(); }catch(e){}
   // ticks
   const tk=$("#ticks"); tk.innerHTML=""; const tv=scale==="linear"?[0,0.5e6,1e6,1.5e6,2e6]:[1e4,1e5,1e6]; tv.filter(v=>v<=max).forEach(v=>{ const s=document.createElement("span"); s.style.left=(widthOf(v,max)*88)+"%"; s.textContent=v?fmtN(v):"0"; tk.appendChild(s); });
   // rows
-  const vis=sorted.filter(d=>(!filterTier||d.tier===filterTier)&&(!filterRv||(filterRv==="wait"?!rvOf(d):filterRv==="zoom"?zoomOf(d):rvOf(d)===filterRv))&&(!filterCode||(filterCode==="MIDI"?codeSoft(d.code):d.code===filterCode))&&(!q||(d.name+" "+d.cat+" "+d.group+" "+(d.code||"")).toLowerCase().includes(q)));
+  const vis=sorted.filter(d=>(!filterTier||d.tier===filterTier)&&(!filterRv||(filterRv==="wait"?!rvOf(d):filterRv==="zoom"?zoomOf(d):rvOf(d)===filterRv))&&(!filterCode||(filterCode==="MIDI"?codeSoft(d.code):d.code===filterCode))&&(!q||(d.name+" "+d.cat+" "+d.group+" "+(d.code||"")+" "+codeLabel(d.code)+(codeSoft(d.code)?" midi มีดี แนะนำ":"")).toLowerCase().includes(q)));
   const wrap=$("#rows"); wrap.innerHTML=""; let lastTier=null, rank=0; const rankOf=new Map(sorted.map((d,i)=>[d,i+1]));
   const pinned=vis.filter(d=>d.sug&&!rvOf(d)); const rest=vis.filter(d=>!(d.sug&&!rvOf(d)));
   if(pinned.length){ const ph=document.createElement("div"); ph.className="pinhead"; ph.innerHTML=`<b>KOL เพิ่มมาใหม่</b><span>${pinned.length} รายการ รอพิจารณา</span><span class="blink">● กดดูแล้วติ๊กผล</span>`; wrap.appendChild(ph); pinned.forEach(d=>wrap.appendChild(rowEl(d,rankOf,reach,max,true))); const sp=document.createElement("div"); sp.className="pin"; wrap.appendChild(sp); }
   rest.forEach(d=>{ if(d.tier!==lastTier){ lastTier=d.tier; const t=TIERS.find(x=>x.k===d.tier); const g=sorted.filter(x=>x.tier===d.tier), r=g.reduce((s,x)=>s+(x.f||0),0);
       const h=document.createElement("div"); h.className="tierhead"; h.innerHTML=`<i style="background:${t.c}"></i><b>${t.n}</b><span>${t.d} ผู้ติดตาม</span><span class="m">${g.length} คน · reach ${fmtN(r)} (${Math.round(r/reach*100)}%)</span>`; wrap.appendChild(h); }
     wrap.appendChild(rowEl(d,rankOf,reach,max,false)); });
-  if(!vis.length) wrap.innerHTML=data.length?`<div class="empty">ไม่พบ KOL ที่ตรงกับตัวกรอง</div>`:`<div class="skel" id="skel"></div>`;
+  if(!vis.length){ wrap.innerHTML=data.length?`<div class="empty">ไม่พบ KOL ที่ตรงกับตัวกรอง${q?` · คำค้นหา “${esc(q)}”`:""}${filterTier?` · ระดับ ${esc(filterTier)}`:""}<br><button type="button" class="btn" id="clr-f" style="margin-top:10px">ล้างตัวกรอง แสดงทั้งหมด</button></div>`:`<div class="skel" id="skel"></div>`; const cb=$("#clr-f"); if(cb) cb.onclick=()=>{ q=""; $("#q").value=""; filterTier=""; filterRv=""; filterCode=""; render(); }; }
   const tl=teamList(sorted);
   $("#t-review").textContent=`${np}/${data.length}`; $("#t-review").parentElement.title=`ลูกค้ายืนยันผ่านแล้ว ${np} จาก ${data.length} คน · ตัดออก ${nf} · ยังไม่ได้ดู ${nw}`; $("#t-team").textContent=`${Math.min(tl.all.length,TARGET)}/${TARGET}`; $("#t-target").textContent=TARGET;
   $("#t-plan").textContent=tl.all.filter(d=>phasesOf(d).length).length+"/"+tl.all.length;
@@ -567,6 +567,22 @@ $("#a-close").onclick=()=>{ $("#amodal").hidden=true; }; $("#amodal").addEventLi
     if(r.already) set("ℹ️",`${r.name} ${r.status==="approved"?"ได้รับอนุมัติ":r.status==="denied"?"ถูกปฏิเสธ":"มีสถานะ "+r.status} อยู่แล้ว`,"ไม่ได้เปลี่ยนอะไรค่ะ");
     else set(r.status==="approved"?"✅":"❌",`${r.status==="approved"?"อนุมัติ":"ปฏิเสธ"} ${r.name} แล้ว`,r.status==="approved"?"หน้าบอร์ดของเขาจะเปิดเองภายใน 10 วินาทีค่ะ":"เขาจะเห็นข้อความว่าคำขอถูกปฏิเสธค่ะ"); })
   .catch(err=>set("⚠️","บันทึกไม่สำเร็จ",String(err&&err.message||err))); })();
+/* ดาวน์โหลด Excel: อ่านอย่างเดียว ไม่เขียนอะไรลงชีต */
+function exportRows(){ const sorted=[...data].sort((a,b)=>(b.f||0)-(a.f||0)||a.idx-b.idx); const T=Object.fromEntries(TIERS.map(t=>[t.k,t.n+" "+t.d]));
+  return sorted.map((d,i)=>{ const rv=rvOf(d), R=reviews[rid(d)]||{}, c=condOf(d), z=zoomRec(d);
+    return {"ลำดับ":i+1,"ชื่อ KOL":d.name,"ระดับ":T[d.tier]||"","ผู้ติดตาม":d.f||"","หมวด":d.cat||"","ผู้แนะนำ (Code)":codeSoft(d.code)?"MiDi แนะนำ":codeLabel(d.code),
+      "ผลพิจารณา":rv==="pass"?"ผ่าน":rv==="fail"?"ตัดออก":"ยังไม่ได้ดู","ตัดสินโดย":rv?(R.by||""):"","เหตุผล (ถ้าตัดออก)":rv==="fail"?(R.reason||""):"",
+      "เงื่อนไขรับงาน":c?(c.t||[]).concat(c.x?[c.x]:[]).join(", "):"","เข้าประชุม ZOOM ได้":z?"ได้":"","ติ๊ก ZOOM โดย":z?(z.by||""):"",
+      "ระยะ (แผน 3 ระยะ)":phasesOf(d).join(", "),"วันโพสต์ (พ.ย.)":datesOf(d).join(", "),"ลิงก์":d.link||"","เพิ่มใหม่โดย":d.sug?(d.by||"ลูกค้า"):""}; }); }
+function xlsxLib(){ if(window.XLSX) return Promise.resolve(window.XLSX); return new Promise((ok,no)=>{ const sc=document.createElement("script"); sc.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; sc.onload=()=>window.XLSX?ok(window.XLSX):no(new Error("xlsx")); sc.onerror=()=>no(new Error("xlsx")); document.head.appendChild(sc); }); }
+function downloadExcel(){ if(!data.length){ toast("ยังโหลดข้อมูลไม่เสร็จ"); return; } const rows=exportRows(), stamp=new Date().toLocaleString("sv-SE",{timeZone:"Asia/Bangkok"}).slice(0,16).replace(/[: ]/g,"-"), fn=`KOL-Board-อวดเมืองโคราช-${stamp}`; logEv("export","xlsx "+rows.length);
+  const np=rows.filter(r=>r["ผลพิจารณา"]==="ผ่าน").length, nf=rows.filter(r=>r["ผลพิจารณา"]==="ตัดออก").length, nz=rows.filter(r=>r["เข้าประชุม ZOOM ได้"]).length;
+  const sum=[["KOL Approval Board · อวดเมืองโคราช"],["ดึงข้อมูลเมื่อ",new Date().toLocaleString("th-TH",{timeZone:"Asia/Bangkok"})],["KOL ทั้งหมด",rows.length],["ผ่าน",np],["ตัดออก",nf],["ยังไม่ได้ดู",rows.length-np-nf],["เข้าประชุม ZOOM ได้",nz]];
+  xlsxLib().then(X=>{ const wb=X.utils.book_new(); const ws=X.utils.json_to_sheet(rows); ws["!cols"]=Object.keys(rows[0]).map(k=>({wch:Math.min(40,Math.max(k.length+2,...rows.map(r=>String(r[k]).length+2)))})); ws["!autofilter"]={ref:ws["!ref"]};
+      X.utils.book_append_sheet(wb,ws,"รายชื่อ KOL"); const s2=X.utils.aoa_to_sheet(sum); s2["!cols"]=[{wch:22},{wch:28}]; X.utils.book_append_sheet(wb,s2,"สรุป"); X.writeFile(wb,fn+".xlsx"); toast("ดาวน์โหลด Excel แล้ว"); })
+    .catch(()=>{ const keys=Object.keys(rows[0]); const q=v=>`"${String(v).replace(/"/g,'""')}"`; const csv="\ufeff"+[keys.map(q).join(",")].concat(rows.map(r=>keys.map(k=>q(r[k])).join(","))).join("\r\n");
+      const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"})); a.download=fn+".csv"; document.body.appendChild(a); a.click(); a.remove(); toast("ดาวน์โหลดเป็นไฟล์ CSV (เปิดด้วย Excel ได้)"); }); }
+$("#xls").onclick=downloadExcel;
 /* เริ่มต้น */
 if(ACCESS&&ACCESS.vid===VID){ gateOpen(); } else { gateShow("gate-form"); try{ const q=JSON.parse(localStorage.getItem("kol_gate_req")||"null"); if(q){ $("#g-name").value=q.name||""; $("#g-phone").value=q.phone||""; api("accessStatus",[{vid:VID}]).then(r=>{ if(r&&r.status==="approved"){ gateSave({vid:VID,name:r.name||q.name,phone:q.phone,admin:!!r.admin,at:Date.now()}); gateOpen(); } else if(r&&r.status==="pending") gateWait(q.name,q.phone); }).catch(()=>{}); } }catch(e){} }
 window.KOL={$,esc,setTab,logEv,flushLog,api,toast,render,posts:()=>POSTS,reviewer:()=>reviewer,tab:()=>TAB}; // ให้ planmedia.js ใช้
