@@ -127,9 +127,9 @@ function render(){ try{ renderTimeline(); }catch(e){}
   $("#t-sched").textContent=tl.all.filter(d=>datesOf(d).length).length+"/"+tl.all.length;
 }
 /* ===== tabs ===== */
-let TAB="review"; try{ TAB=localStorage.getItem("kol_tab")||"review"; }catch(e){}
+const TABS=["pm","review","team","plan","sched"]; let TAB="review"; try{ TAB=localStorage.getItem("kol_tab")||"review"; }catch(e){} if(TABS.indexOf(TAB)<0) TAB="review";
 function pmOK(){ try{ return !!sessionStorage.getItem("pm_who"); }catch(e){ return false; } }
-function setTab(t){ if(t==="pm"&&!pmOK()){ if(window.openPmGate){ openPmGate(); return; } t="review"; } TAB=t; document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===t)); document.querySelectorAll(".page").forEach(p=>p.hidden=p.dataset.page!==t); try{localStorage.setItem("kol_tab",t);}catch(e){} try{ logEv("tab",t); }catch(e){} if(t==="pm"&&window.renderPM) renderPM(); if(t==="sched"&&typeof renderSched==="function"&&data.length) renderSched(teamList([...data].sort((a,b)=>(b.f||0)-(a.f||0))).all); }
+function setTab(t){ if(TABS.indexOf(t)<0) t="review"; if(t==="pm"&&!pmOK()){ if(window.openPmGate){ openPmGate(); return; } t="review"; } TAB=t; document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===t)); document.querySelectorAll(".page").forEach(p=>p.hidden=p.dataset.page!==t); try{localStorage.setItem("kol_tab",t);}catch(e){} try{ logEv("tab",t); }catch(e){} if(t==="pm"&&window.renderPM) renderPM(); if(t==="sched"&&typeof renderSched==="function"&&data.length) renderSched(teamList([...data].sort((a,b)=>(b.f||0)-(a.f||0))).all); }
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.tab)); setTab(TAB);
 $("#present").onclick=()=>{ const on=document.body.classList.toggle("present"); $("#present").textContent=on?"✕ ออกจากนำเสนอ":"▶ นำเสนอ"; if(on&&document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{}); if(!on&&document.fullscreenElement) document.exitFullscreen().catch(()=>{}); logEv("present",on?"on":"off"); };
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&document.body.classList.contains("present")) $("#present").click(); });
@@ -255,7 +255,7 @@ function togglePhase(d,p){ if(!reviewer){ askName(()=>togglePhase(d,p)); return;
 /* ===== KOL card ===== */
 /* ===== schedule board: drag KOL → day ===== */
 let SC_SEL=null;
-function renderSched(all){ const el=$("#sc"); if(!el||$("#tabs .tab.active").dataset.tab!=="sched") return;
+function renderSched(all){ const el=$("#sc"); if(!el||TAB!=="sched") return;
   const ev={}; tlEvents().forEach(e=>ev[e.d]=e.t);
   const SUG={}; try{ autoDates(all).forEach(r=>{ SUG[r.key]=r.dates.split(",").map(Number).filter(Boolean); }); }catch(e){}
   const tot={}; all.forEach(d=>datesOf(d).concat(nanoDatesOf(d)).forEach(x=>{ tot[x]=tot[x]||{n:0,r:0}; tot[x].n++; tot[x].r+=(d.f||0); }));
